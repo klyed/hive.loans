@@ -63,11 +63,17 @@ socket.on('token', function(data){
   token = data.token;
 });//END token
 
+socket.on('validcheck', function(data){
+  if(navList[navList.length-1] == "futures"){
+       CreateTableFromJSON(data, 'opencfds', 'openFutureOrders', "opencfdtable", "opencfdhead");
+  }
+});
+
 //--------------------------------------------------
 //     Shares & Dividends & Backers & Investing
 //--------------------------------------------------
 socket.on('sharesitetake', function(data){
-  log(data);
+  if(debug == true) console.log(data);
   var siteshare = (data/100000000).toFixed(3);
 $('#sitetake').val(siteshare);
 });//END sharesitetake
@@ -389,6 +395,7 @@ socket.on('hivepriceupdatebackup', function(data){
   $('#pricepercentticker').html(`Total Supply: --------.--- | Market Cap: $-------.-- USD | Daily Volume: $-.-- USD | Last Hour: -.--% | Last Day: -.--% | Past Week: -.--% | Past Month:-.--%`)
 });//END hivepriceupdatebackup
 
+var numAnim;
 socket.on('priceupdate', function(data){
   if(debug === true) {
     console.log(`socket.on('priceupdate)`);
@@ -457,8 +464,10 @@ socket.on('priceupdate', function(data){
   $('#shortSpotPrice').val((data.hiveshortprice).toFixed(6));
   $('#longSpotPrice').val((data.hivelongprice).toFixed(6));
   if(lastHivePrice) oldhiveusdprice = lastHivePrice;
-  var numAnim = new CountUp("footerprice", $('#footerprice').val(), data.hiveusdprice, 6, 0.9, options);
+
+
   if(pricecheckinit != true) {
+    numAnim = new CountUp("footerprice", $('#footerprice').val(), data.hiveusdprice, 6, 0.9, options);
     $('#pricecheckcaret').html(`<i class="fas fa-caret-right hidden" style="color:lightblue;" title="This Price is Recently Fetched at - ${new Date(data.date)}"></i>`);
     if(tickercurrency == 'usd'){
       numAnim.start(updatebet($("#footerprice"), data.hiveusdprice));

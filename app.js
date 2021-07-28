@@ -23,8 +23,16 @@ if(config.dbSetup === true){
       log('DB Migration complete.');
     }
   migrateDB();
-}
+};
 
+if(config.dbSync === true){
+  async function syncDB() {
+      log('Syncing DB...');
+      await require('./dbsync.js').start();
+      log('DB Sync Complete!');
+    }
+  syncDB();
+};
 
 
 const sessiondata = {
@@ -202,12 +210,12 @@ io.on("connection", function(socket) {
     if(typeof appSocketList != undefined && appSocketList.includes(socket)){
       delete appSocketList[socket];
       appSocketList = FixNull(appSocketList);
-      if(debug === false) log(`APP: appSocketList: ${appSocketList}`);
+      if(debug === true) log(`APP: appSocketList: ${appSocketList}`);
     }
     if(typeof clientIp != undefined && ipAddressList.includes(clientIp)){
       delete ipAddressList[clientIp];
       ipAddressList = FixNull(ipAddressList);
-      if(debug === false) log(`APP: ipAddressList: ${ipAddressList}`);
+      if(debug === true) log(`APP: ipAddressList: ${ipAddressList}`);
     }
   });
   //newapp = mainapp(socket, io);

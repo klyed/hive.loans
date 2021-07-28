@@ -28,23 +28,18 @@ log(`WRITE: Connected: ${online} with PID: ${pid}`);
 
 let writeArray = [];
 let writing = false;
-
 let userSockets = [];
-
 let head_block_id;
 let ref_block_num;
 
-
-function loanCount() {
-  Loandata.count().then(c => {
-    return c;
-  })
-}
-
 var writeArrayLengthMetric = pm2.writeArrayLengthMetric;
-
 var isWritingMetric = pm2.isWritingMetric;
+var auditseshtotal = 0;
 
+//==================================================
+//--------------------------------------------------
+//     CustomJSON Array & JSON HIVE Block Write
+//--------------------------------------------------
 class ChainCrumb {
   constructor(name, action, payload) {
     if(!name) return false;
@@ -56,17 +51,19 @@ class ChainCrumb {
     if(payload) {
       //payload = JSON.parse(payload);
       var payloadBytes = getStringByteSize.getStringByteSize(payload.contractPayload);
-      log(payload);
-      log(`SCRIBE: ChainCrumb - bytes: ${payloadBytes}`);
+      if(debug == true){
+        log(payload);
+        log(`SCRIBE: ChainCrumb - bytes: ${payloadBytes}`);
+      }
       if(payloadBytes > 8192) {//8192
-      log(`SCRIBE: ChainCrumb - itemPayload Bytes > 8196b`);
-      return false;
-    } else {
-      return this;
+        log(`SCRIBE: ChainCrumb - itemPayload Bytes > 8196b`);
+        return false;
+      } else {
+        return this;
+      }
     }
   }
-}
-}
+};//END ChainCrumb
 
 class ChainOp {
   constructor(ref_block_num, ref_block_prefix, expiration, operations) {
@@ -76,31 +73,11 @@ class ChainOp {
     this.operations = [operations], //opertations syntax: ['opName', {atrribute1: var, attribute2: etcetc}]
     this.extensions = []
   }
-}
-
-var fetchHead = async() => {
-  log(`fetchHead()`);
-  hive.api.getDynamicGlobalProperties(await function (err, result) {
-      if(err) {
-        log(err);
-        return false;
-      }
-      if (result) {
-          result = JSON.parse(JSON.stringify(result));
-          log(result);
-          result = parseInt(result["head_block_number"]);
-          head_block_id = result["head_block_id"];
-          ref_block_num = result["ref_block_num"];
-          return result;
-          //return result["last_irreversible_block_num"];
-      }
-  });
-};
+};//END ChainOp
 
 var arrayPacker = (name, action, payload) => {
-  log(`arrayPacker = (${name}, ${action}, ${payload})`);
+  if(debug == true) log(`arrayPacker = (${name}, ${action}, ${payload})`);
   var createdCrumb;
-  if (debug === false) log(`arrayPacker = (${name}, ${action}, ${payload})`);
   if(!name) log(`WRITE: ERROR: arrayPacker Missing name!`);
   if(!action) log(`WRITE: ERROR: arrayPacker Missing action!`);
   if(action !== 'nukeloan') {
@@ -112,25 +89,16 @@ var arrayPacker = (name, action, payload) => {
   //if(payload)
   createdCrumb = new ChainCrumb(name, action, payload);
   if(createdCrumb == false) {
-    log('createdCrumb: FALSE');
+    //log('createdCrumb: FALSE');
     return;
   } else {
-    log('createdCrumb:');
-    log(createdCrumb);
+    //log('createdCrumb:');
+    //log(createdCrumb);
     createdCrumb = JSON.stringify(createdCrumb);
     writeArray.push(createdCrumb);
   }
   delete createdCrumb;
-}
-
-var fetchSiteRC = async() => {
-  var hotwalletRC = await manaBar.fetchRC(hotwallet);
-  log(`hotwalletRC: ${hotwalletRC}%`);
-  log(hotwalletRC);
-};
-
-
-var auditseshtotal = 0;
+};//END arrayPacker
 
 var jsonHiveWrite = async(writeArray) => {
   if (debug === false) log(`jsonHiveWrite = async(${writeArray})`);
@@ -158,14 +126,15 @@ var jsonHiveWrite = async(writeArray) => {
     nal++;
       var preswitchoutpayload;
       itemPayload = JSON.parse(itemPayload);
+      if(debug == true) {
+        log(`SCRIBE: ${item} - itemPayload:`);
+        log(itemPayload);
 
-      log(`SCRIBE: ${item} - itemPayload:`);
-      log(itemPayload);
-
-      log(`SCRIBE: itemPayload.contractAction:`);
-      log(itemPayload.contractAction);
+        log(`SCRIBE: itemPayload.contractAction:`);
+        log(itemPayload.contractAction);
+      }
       if(auditwrite !== true && itemPayload.contractAction == 'audit'){
-        log(`SCRIBE: AUDIT FOUND - REMOVING`);
+        if(debug) log(`SCRIBE: AUDIT FOUND - REMOVING`);
         preswitchoutpayload = itemPayload;
         itemPayload.contractPayload = {audit: 'view latest audit as https://hive.loans/api?audit'};
         itemPayload = {audit: 'view latest audit as https://hive.loans/api?audit'};
@@ -330,7 +299,7 @@ var jsonHiveWrite = async(writeArray) => {
 
     }
   }
-};
+};//END jsonHiveWrite
 
 async function writeDaemon() {
   if(debug === true) {
@@ -340,7 +309,7 @@ async function writeDaemon() {
   if(writeArray.length > 0 && writing !== true){
     await jsonHiveWrite(writeArray);
   }
-}; //END async function writeDaemon()
+};//END writeDaemon
 
 if(debug === true) {
   var writeArrayCheck = function(){
@@ -349,10 +318,9 @@ if(debug === true) {
       log(`writeArray:`);
       log(writeArray);
     }, 15000);
-  }
+  };//END writeArrayCheck
   writeArrayCheck();
-};
-
+};//END debug checkwritearray
 
 var writeRobot = function(){
   var roboInterval = setInterval(function(){
@@ -370,12 +338,49 @@ var writeRobot = function(){
       writeDaemon();
     }
   }, 3000);
-};
+};//END writeRobot
 
 writeRobot();
 
-
-
+//==================================================
+//--------------------------------------------------
+//     Utility & Function
+//--------------------------------------------------
+//fetch the head HIVE Block
+var fetchHead = async() => {
+  log(`fetchHead()`);
+  hive.api.getDynamicGlobalProperties(await function (err, result) {
+      if(err) {
+        log(err);
+        return false;
+      }
+      if (result) {
+          result = JSON.parse(JSON.stringify(result));
+          log(result);
+          result = parseInt(result["head_block_number"]);
+          head_block_id = result["head_block_id"];
+          ref_block_num = result["ref_block_num"];
+          return result;
+          //return result["last_irreversible_block_num"];
+      }
+  });
+};//END fetchHead
+//fetch the sites Resource Credits
+var fetchSiteRC = async() => {
+  var hotwalletRC = await manaBar.fetchRC(hotwallet);
+  log(`hotwalletRC: ${hotwalletRC}%`);
+  log(hotwalletRC);
+};//END fetchSiteRC
+//fetch count of loans ???
+function loanCount() {
+  Loandata.count().then(c => {
+    return c;
+  })
+};//END loanCount
+//==================================================
+//--------------------------------------------------
+//     Socket Messages
+//--------------------------------------------------
 process.on("message", async function(m){
   var sendsocket;
   try {

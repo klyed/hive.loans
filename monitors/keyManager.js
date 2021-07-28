@@ -83,6 +83,11 @@ await hive.api.getWithdrawRoutes(`${user}`, 1, function(err, data) {
   console.log(err, data);
 });
 
+console.log(`setWithdrawVestingRoute:`);
+await hive.broadcast.setWithdrawVestingRoute(wif, fromAccount, toAccount, percent, autoVest, function(err, result) {
+  console.log(err, result);
+});
+
 
 /* Used to check a public key account owner
 console.log(`getKeyReferences:`);

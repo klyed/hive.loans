@@ -34,21 +34,20 @@ module.exports = {
         defaultValue: 0
       },
       openPrice: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DECIMAL(10,10),
         allowNull: false,
         defaultValue: 0
       },
       closePrice: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        defaultValue: 0
+        type: Sequelize.DECIMAL(10,10),
+        allowNull: true
       },
       stoploss: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DECIMAL(10,10),
         allowNull: true
       },
       liquidation: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.DECIMAL(10,10),
         allowNull: false,
         defaultValue: 0
       },
@@ -58,7 +57,9 @@ module.exports = {
         defaultValue: 1
       },
       profit: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0
       },
       active: {
         type: Sequelize.BOOLEAN,

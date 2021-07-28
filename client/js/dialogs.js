@@ -10,9 +10,9 @@ let moverAddon =
 `<span id="jumboClose" class="smolbutton" title="Click to Close this Panel" onclick="$('#jumbotron').fadeOut();" onmouseover="$(this).css({'color':'red'})" onmouseout="$(this).css({'color':'white'})"><i class="fas fa-fw fa-times"></i></span>`;
 
  function loadingjumbo() {
-  var loadingContent = `<center style="margin-top:-15px;">LOADING<br><i id="loadingring" style="color:limegreen;" class="fa fa fa-cog fa-pulse fa-3x fa-fw"></i></center>`;
+  var loadingContent = `<center style="margin-top:-15px;"><b>LOADING</b><hr><i id="loadingring" style="color:limegreen;" class="fa fa fa-cog fa-pulse fa-3x fa-fw"></i><br></center>`;
       $("#jumboWrapper").html(loadingContent);
-      $("#jumbotron").css({'min-height':'5vh','height':'69px','min-width':'5vh','width':'69px'});
+      $("#jumbotron").css({'min-height':'9vh','height':'9vh','min-width':'7vh','width':'7vh'});
       $("#jumbotron").center();
       $("#jumbotron").fadeIn('slow');
       //$("#jumboTitle").text(`Loading`);
@@ -179,8 +179,8 @@ var withdrawButtonSideWallet = async(user, coin) => {
            `</span>` +
            `</td>` +
            `<td style="width:40%;">` +
-           `<a href="https://hiveblocks.com/@${user}" style="text-decoration: none !important;"  class="walletTopName" target="_blank">` +
-           `${user}` +
+           `<a href="https://hiveblocks.com/@${uUsername}" style="text-decoration: none !important;"  class="walletTopName" target="_blank">` +
+           `${uUsername}` +
            `</a>` +
            `</td>` +
            `</tr>` +
@@ -309,8 +309,8 @@ var withdrawButtonWallet = async(user, coin) => {
            `</span>` +
            `</td>` +
            `<td style="width:40%;">` +
-           `<a href="https://hiveblocks.com/@${user}" style="text-decoration: none !important;"  class="walletTopName" target="_blank">` +
-           `${user}` +
+           `<a href="https://hiveblocks.com/@${uUsername}" style="text-decoration: none !important;"  class="walletTopName" target="_blank">` +
+           `${uUsername}` +
            `</a>` +
            `</td>` +
            `</tr>` +
@@ -450,7 +450,7 @@ var depositButtonSideWallet = async(user, coin) => {
    `<table>` +
    `<tbody>` +
    `<tr>` +
-   `<td style="float: right; width: 45%;">Deposit using Keychain:<br><button type="button" class="button" style="font-size: normal;border-radius:5px;" class="button" id="skclogologin" onClick="depositAmount = parseFloat($('#depositInteger').val()).toFixed(3); keychainSend('${user}', 'hive.loans', depositAmount, '${uAddress}', '${coin}')" title="Click here Deposit with Hive KeyChain"><img src="/img/keychaintext.png" class="keychainlogo" style="width:80%"></button></td><td style="float: left; width: 45%;">Deposit using HiveSigner:<br><button type="button" style="font-size: normal;border-radius:5px;" class="button disabledImg" id="hivesignerdeposit" onClick=" showErr('HiveSigner Deposits Currently Disabled');/*deposit($('#depositInteger').val(), '${coin}', '${uAddress}')*/" title="Click here to Deposit with HiveSigner"><img src="/img/hivesigner.svg" class="hivesignerlogo" style="width:85%"></button></td></tr></tbody></table></center>`+
+   `<td style="float: right; width: 45%;">Deposit using Keychain:<br><button type="button" class="button" style="font-size: normal;border-radius:5px;" class="button" id="skclogologin" onClick="depositAmount = parseFloat($('#depositInteger').val()).toFixed(3); keychainSend('${uUsername}', 'hive.loans', depositAmount, '${uAddress}', '${coin}')" title="Click here Deposit with Hive KeyChain"><img src="/img/keychaintext.png" class="keychainlogo" style="width:80%"></button></td><td style="float: left; width: 45%;">Deposit using HiveSigner:<br><button type="button" style="font-size: normal;border-radius:5px;" class="button disabledImg" id="hivesignerdeposit" onClick=" showErr('HiveSigner Deposits Currently Disabled');/*deposit($('#depositInteger').val(), '${coin}', '${uAddress}')*/" title="Click here to Deposit with HiveSigner"><img src="/img/hivesigner.svg" class="hivesignerlogo" style="width:85%"></button></td></tr></tbody></table></center>`+
    `<code style="margin: none !important;">` +
    `<span class="showManDep" onClick="shmdf()"><span id="showHideManDep">Show</span> Manual Deposit Information</span>` +
    `</code>`+
@@ -507,6 +507,8 @@ showSend();
 }
 
  var depositButtonWallet = async(user, coin) => {
+   //if(!user) return showErr('No User Specified..');
+   if(!coin) return showErr('No Coin Specified..');
    //var fromLength =
    //var toLength =
    var rawHiveBalance;
@@ -529,8 +531,8 @@ showSend();
      `<tbody>` +
      `<tr>` +
      `<td style="width:40%;">` +
-     `<a href="https://hiveblocks.com/@${user}" style="text-decoration: none !important;"  class="walletTopName" target="_blank">` +
-     `${user}` +
+     `<a href="https://hiveblocks.com/@${uUsername}" style="text-decoration: none !important;"  class="walletTopName" target="_blank">` +
+     `${uUsername}` +
      `</a>` +
      `</td>` +
      `<td>` +
@@ -594,11 +596,11 @@ showSend();
         $('#mandepinfo').hide();
          $("#jumbotron").fadeIn();
 
-          hive.api.getAccounts([user], function(err, result) {
+          hive.api.getAccounts([uUsername], function(err, result) {
            if(err){ console.log(err)}
            if(result){
              result = result[0];
-             console.log(`getAccounts: ${user}`);
+             console.log(`getAccounts: ${uUsername}`);
              console.log(result);
              rawHiveBalance = result.balance;
              userHiveBalance = parseFloat(rawHiveBalance);
@@ -1967,7 +1969,7 @@ async function showProfile() {
   `</td>` +
   `</tr>` +
   `<tr id="profilestatsrow">` +
-  `<p id="sasf" onload="$('#sasf').addClass('hidden');"><span id="showStatsTemp">Show</span> Account Stats & Facts</p>` +
+  //`<p id="sasf" onload="$('#sasf').addClass('hidden');"><span id="showStatsTemp">Show</span> Account Stats & Facts</p>` +
   `<td class="profilestats">` +
   `<b>Loans</b>` +
   `<br>` +
@@ -2678,7 +2680,31 @@ async function showFutures() {
   `</center>` +
   `<td class="cfd-td">` +
   `<span id="openFutureOrders" class="robotable">` +
-  `<span id="noFutureOrders"><sub>No Orders Found</sub></span>` +
+  `<center>` +
+  `<table>` +
+  `<thead>` +
+  `<tr>` +
+    `<th>Type</th>` +
+    `<th>Amount</th>` +
+    `<th>Margin</th>` +
+    `<th>Price</th>` +
+    `<th>Liquidation</th>` +
+    `<th>Profit / Loss</th>` +
+  `</tr>` +
+  `</thead>` +
+    //`<div id="noFutureOrders"><sub>No Orders Found</sub></div>` +
+  `<tbody>` +
+  `<tr>` +
+    `<td></td>` +
+    `<td></td>` +
+    `<td></td>` +
+    `<td></td>` +
+    `<td></td>` +
+    `<td></td>` +
+  `</tr>` +
+  `</tbody>` +
+  `</table>` +
+  `</center>` +
   `</span>` +
   `<span id="openFutureHistory" onClick="cfdHistorySwitch();"><sub>Click Here to Switch View to <span id="openFutureHistoryType">Position History</span></sub></span>` +
   `</td>` +
@@ -2828,23 +2854,23 @@ async function showPowerTab() {
   `Available Leases & HP:` +
   `<br>` +
   `<br>` +
-  `<input type="number" id="leasetotal" class="casperInput" value="0" disabled></input>` +
+  `<input type="number" id="leasetotal" class="casperInput smolinput" value="0" disabled></input>` +
   `<br>` +
-  `<input type="number" id="leasehptotalinput" class="casperInput" value="0" disabled></input> <span class="basetype">HIVE</span> <span class="logospan"><i class="fab fa-hive" style="color:#E31337;"></i></span>` +
+  `<input type="number" id="leasehptotalinput" class="casperInput smolinput" value="0" disabled></input> <span class="basetype">HIVE</span> <span class="logospan"><i class="fab fa-hive" style="color:#E31337;"></i></span>` +
   `</th>` +
   `<th>` +
   `Active Leases & HP:` +
   `<br>` +
-  `<input type="number" id="activeleasetotal" class="casperInput" value="0" disabled></input>` +
+  `<input type="number" id="activeleasetotal" class="casperInput smolinput" value="0" disabled></input>` +
   `<br>` +
-  `<input type="number" id="activeleasehptotalinput" class="casperInput" value="0" disabled></input> <span class="basetype">HIVE</span> <span class="logospan"><i class="fab fa-hive" style="color:#E31337;"></i></span>` +
+  `<input type="number" id="activeleasehptotalinput" class="casperInput smolinput" value="0" disabled></input> <span class="basetype">HIVE</span> <span class="logospan"><i class="fab fa-hive" style="color:#E31337;"></i></span>` +
   `</th>` +
   `<th>` +
   `Maximum APR:` +
   `<br>` +
-  `<input type="number" id="aprpercent" class="casperInput" value="0.0000%" disabled></input>` +
+  `<input type="number" id="aprpercent" class="casperInput smolinput" value="0.0000%" disabled></input>` +
   `<br>` +
-  `<input type="number" id="apraveragepercent" class="casperInput" value="0.0000%" disabled></input>` +
+  `<input type="number" id="apraveragepercent" class="casperInput smolinput" value="0.0000%" disabled></input>` +
   `</th>` +
   `<th>` +
   `Balance: ` +
@@ -3449,6 +3475,7 @@ async function showLoansMixed() {
   `</span>` +
   `</span>` +
   `</div>` +
+  `<br>` +
   `<sub class="robotable" style="height:20% !important;width:60% !important; text-align:left;overflow:hidden; overflow-y:hidden !important;">` +
   `<span id="loanCreateFeedback">` +
   `Returns: <span id="loanCreateFeedbackReturn">0.000 <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> <i class="fas fa-fw fa-info-circle" title="( minus a 0.000 HIVE site commission fee (10%) )"></i> Paid Over ~ Days</span>` +
@@ -3466,7 +3493,7 @@ async function showLoansMixed() {
   `</span>` +
   `</sub>` +
   `<button id="createMainLoanbutton" onClick="createNewMainLoan();" class="button">MAKE <span class="loanbase">HIVE</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> LOAN</button><br>` +
-  `<sub>( Account Balance: <span id="loanUserBalance"  class="userhivebalancedisplay">${(userWalletFetchData.hivebalance / 1000).toFixed(3)}</span> <span class="loanbase">HIVE</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> <a href="#" class="paintitwhite" onClick="loanWalletLink();" title="Click Here to Open Up Wallet to Deposit"><i class="fas fa-wallet"></i></a> )</sub>` +
+  `<sub>( Account Balance: <span id="loanUserBalance" title="Click Here to Copy Value to Loan Amount" onclick="$('#loanCreateAmount').val(${(userWalletFetchData.hivebalance / 1000).toFixed(3)});" class="userhivebalancedisplay">${(userWalletFetchData.hivebalance / 1000).toFixed(3)}</span> <span class="loanbase">HIVE</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> <a href="#" class="paintitwhite" onClick="loanWalletLink();" title="Click Here to Open Up Wallet to Deposit"><i class="fas fa-wallet"></i></a> )</sub>` +
   `</center>` +
   `</td>` +
   `<td class="mainloan-td">` +
@@ -3479,7 +3506,7 @@ async function showLoansMixed() {
   `</td>` +
   `<td class="mainloan-td">` +
   `<center>` +
-  `Amount to Borrow <i class="far fa-fw fa-question-circle siteinfo" title="Amount of HIVE to Borrow" onClick="alert('Amount of HIVE to Borrow')"></i>` +
+  `Amount of <span class="loantype">HIVE</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> to Borrow <i class="far fa-fw fa-question-circle siteinfo" title="Amount of HIVE to Borrow" onClick="alert('Amount of HIVE to Borrow')"></i>` +
   `<br>` +
   `<div class="casperInput input-group" style="">` +
   `<input type="number" id="borrowCreateAmount" class="input-group-text inputclear" placeholder="0.000" min="1" step="0.001"  aria-describedby="basic-addon2">` +
@@ -3519,6 +3546,7 @@ async function showLoansMixed() {
   `</span>` +
   `</span>` +
   `</div>` +
+  `<br>` +
   `<sub class="robotable" style="height:20% !important;width:60% !important; text-align:left;overflow:hidden; overflow-y:hidden !important;">` +
   `<span id="borrowCreateFeedback">` +
   `Total Cost <span id="borrowCreateFeedbackReturn">0.000 <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> <i class="fas fa-fw fa-info-circle" title="( minus a 0.000 HIVE site commission fee (10%) )"></i> Paid Over ~ Days</span>` +
@@ -3527,7 +3555,6 @@ async function showLoansMixed() {
   `<br>`+
   `<center><div class="mainLoanFees"><u>Contract Fees</u></div></center>` +
   `<span id="borrowCreateFeedbackCommission">` +
-  `<br>` +
   `Interest Fee <span id="dbfee">0.000</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span>` +
   `<br>` +
   `Deployment Fee <span id="dpfee">0.000</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span>` +

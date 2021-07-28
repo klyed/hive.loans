@@ -92,8 +92,11 @@ async function HiveCGMarketFetch() {
   try {
     await fetch('https://api.coingecko.com/api/v3/coins/hive?tickers=true&market_data=true&community_data=false&developer_data=false&sparkline=false')
     .then(res => res.json()).then(json => {
-      console.log(`HiveCGMarketFetch data:`);
-      console.log(json);
+      if(debug == true) {
+        console.log(`HiveCGMarketFetch data:`);
+        console.log(json);
+      }
+
       //response = json["hive"];
       //var hiveprice = parseFloat(response["usd"]);
       var pricepayload = { //json;
@@ -148,8 +151,10 @@ var coinGeckoMarketFetchTimer = setInterval(function(){
 async function hiveCMCprice() {
   hivefetchgo = true;
   client.getQuotes({symbol: 'HIVE'}).then(data => {
-        console.log(`hiveCMCprice data:`);
-    console.log(data);
+    if(debug == true){
+      console.log(`hiveCMCprice data:`);
+      console.log(data);
+    }
     data = data.data['HIVE'];
     console.log(data);
     var quoteData = data.quote;

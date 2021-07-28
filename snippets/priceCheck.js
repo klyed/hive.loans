@@ -202,7 +202,7 @@ async function cgpc() {
     if(debug === true) log(json);
     if(lastCGHivePrice != parseFloat(json.hive.usd)) {
       lastCGHivePrice = parseFloat(json.hive.usd);
-      log(`priceCheck.js: 'cgpc()' Updated CoinGecko HIVE/USD Price: $${lastCGHivePrice}`);
+      if(verbose === true) log(`priceCheck.js: 'cgpc()' Updated CoinGecko HIVE/USD Price: $${lastCGHivePrice}`);
     } else {
       if(verbose === true) log(`priceCheck.js: 'cgpc()' SAME PRICE DETECTED HIVE/USD. No Update!`);
     }

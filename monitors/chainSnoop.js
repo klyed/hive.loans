@@ -6,6 +6,7 @@ const owner = config.owner;
 const hotwallet = config.hotwallet;
 const coldwallet = config.coldwallet;
 var refunds = config.refunds;
+var verbose = config.verbose;
 var stdoutblocks = config.stdoutblocks;
 var voteclone = config.votemirror;
 var unsupportedAutoRefund = config.unsupportautorefund;
@@ -27,6 +28,7 @@ var pid = process.pid;
 var hotWalletData;
 var coldWalletData;
 let adminskipsync = false;
+let skipsyncnow = false;
 
 log(`CHAIN: Connected: ${online} with PID: ${pid}`);
 
@@ -64,7 +66,7 @@ let synced = false;
 const version = config.version;
 const apinodes = ["hived.privex.io", "api.hivekings.com", "api.deathwing.me", "api.hive.blog", "api.openhive.network", "hive.roelandp.nl", "hive-api.arcange.eu", "rpc.ausbit.dev", "anyx.io"];
 //hive.api.setOptions({ url: "https://api.hivekings.com" });//http://185.130.44.165/
-hive.api.setOptions({ url: "https://api.hivekings.com" });
+hive.api.setOptions({ url: "https://api.deathwing.me" });
 
 let apiindex = 0;
 let scanOn = false;
@@ -109,60 +111,6 @@ var fetchAccountHbd = async (user) => {
       });
       return resultData;
 };
-
-process.on('message', async function(m) {
-  try {
-      m = JSON.parse(m);
-      if(config.debug == false) {
-        log(`CHAIN: chainSnoop.js Message:`);
-        log(m);
-      }
-  } catch(e) {
-    log(`CHAIN: ERROR: ${e}`);
-    return console.error(e);
-  }
-
-  switch(m.type){
-    case 'changenode':
-      if(m.username !== config.owner) {
-        log(`CHAIN: ERROR: User ${m.username} Tried to Change API Node!`);
-      } else if (m.username == config.owner) {
-        changenode();
-      } else {
-        log(`CHAIN: ERROR: No User Was Specified!`);
-      }
-    break;
-    case 'skipsync':
-      log(`m.socketid:`)
-      log(m.socketid)
-      if(m.username != owner) {
-        log(`CHAIN: ERROR: User ${m.username} Tried to skipsync!`);
-      } else if (m.username == owner) {
-        adminskipsync = true;
-        await skipsync();
-      } else {
-        log(`CHAIN: ERROR: No User Was Specified!`);
-      }
-    break;
-    case 'grabacct':
-      log(`CHAIN: grabacct was called by ${m.username}`)
-      if (m.username != config.owner && m.username != "siteaudit") {
-        log(`CHAIN: ERROR: User ${m.username} Tried to Grab Accounts!`);
-      } else if(m.username == undefined) {
-        log(`CHAIN: ERROR: No User Was Specified!`);
-      } else {
-        log(`CHAIN: Fetching @hive.loans Account for Audit`);
-        hotWalletData = await grabAcct(hotwallet);
-        log(`CHAIN: Fetching @hive.loans.safe Account for Audit`);
-        coldWalletData = await grabAcct(coldwallet);
-          var walletData = [];
-          walletData.push(hotWalletData[0]);
-          walletData.push(coldWalletData[0]);
-          return process.send(JSON.stringify({type:'massemit', name: "sitewallets", payload: walletData}));
-      }
-    break;
-  }
-});
 
 var dbconnect = async() => {
   await auth.startup().then(reply => {
@@ -307,15 +255,19 @@ async function skipsync() {
     log(`CHAIN: ADMIN: skipsync() set blockNum to lastHeadBlock`);
     recentblock = await fetchHead();
     blockNum = await fetchHead();
-    scanOn = false;
-    parseOn = false;
-    synced = true;
+    //scanOn = false;
+    //synced = true;
     newCurrentBlock = blockNum;
     blockNum = lastHeadBlock;
+    skipsyncnow = true;
+    adminskipsync = true;
+    await saveHead(lastHeadBlock);
+    await saveBlock(lastHeadBlock);
+    parseOn = false;
     process.send(JSON.stringify({type: 'blockupdate', block: blockNum, behind: (lastHeadBlock - blockNum), synced:synced}));
-    await saveHead(lastHeadBlock)
-    await saveBlock(lastHeadBlock)
-    return setTimeout(() => {return parseBlock(blockNum + 20)});
+
+    parseBlock(blockNum, true);
+
     return true;
   } else {
     log(`CHAIN: ADMIN: skipsync() blockNum >= lastHeadBlock`);
@@ -341,7 +293,7 @@ async function grabAcct(u) {
   if (u == config.coldwallet){
     v = "Cold Wallet";
   }
-  log(`CHAIN: Fetching ${v} Account @${u}`);
+  if(debug == true) log(`CHAIN: Fetching ${v} Account @${u}`);
   var acctData = await hive.api.callAsync('condenser_api.get_accounts', [[`${u}`]]).then((res) => {return JSON.parse(JSON.stringify(res))}).catch((e) => log(e));
   return acctData;
 }
@@ -351,10 +303,10 @@ async function grabAcct(u) {
 var DepositToAccount = async(uid, depositamt, type, depositID, tx, block, transaction, promo) => {
   var uData;
   var txData;
-if(promo === true){
+  if(promo === true){
   DepositData.create({userId:'1', username: uid, block: block, txid: deposittxid, amount: depositamt, coin: type, confirms: 1, confirmed: false});
 
-} else if(promo === false){
+  } else if(promo === false){
     try {
       tx = JSON.parse(JSON.stringify(transaction));
       //log(`tx:`);
@@ -426,11 +378,10 @@ if(promo === true){
     } else {
       return log(`CHAIN: ERROR: THIS DEPOSIT ALREADY EXISTS!`);
     }
-} else {
+  } else {
   log(`CHAIN: Deposit Promo status was not defined!`);
-}
-
-}//END DepositToAccount
+  }
+};//END DepositToAccount
 
 
 var stallBlock;
@@ -700,11 +651,15 @@ function blockRipper(blockdata, blocknumber) {
 };
 
 //parse a block and loop through it's operations
-async function blockGrabber(blockNum) {
-  if(adminskipsync == true) {
+async function blockGrabber(blockNum, skipsync) {
+  if(adminskipsync == true && skipsync == true) {
     blockNum = await fetchHead();
     saveBlock(blockNum);
-    adminskipsync == false;
+    saveHead(blockNum);//lastSafeBlock = fetchSafe();
+    adminskipsync = false;
+    skipsyncnow = false;
+    parseOn = true;
+    return blockGrabber(blockNum);
   }
    hive.api.getOpsInBlock(blockNum, false, async function (err, block) {
     if(err){
@@ -713,7 +668,7 @@ async function blockGrabber(blockNum) {
       synced = false;
       await timeout(3005);
       //log(`parseblock line 422`)
-      return setTimeout(() => {return parseBlock(blockNum)});
+      return setTimeout(() => {return blockGrabber(blockNum)});
     }
     if (err !== null) return bail(err);
     if (block.length == 0) {
@@ -731,15 +686,15 @@ async function blockGrabber(blockNum) {
           process.stdout.clearLine();
           parseOn = false;
           synced = true;
-          return setTimeout(() => {return parseBlock(blockNum)});
+          return setTimeout(() => {return blockGrabber(blockNum)});
         }
 
         //process.stdout.clearLine();
         //log(`parseblock line 443`)
         parseOn = false;
         await timeout(1000);
-        return setTimeout(() => {return parseBlock(blockNum)});
-    }
+        return setTimeout(() => {return blockGrabber(blockNum)});
+    }//END if(block.length == 0)
     if(block){
       if((blockNum % 25) == 1) {
         saveBlock(blockNum);
@@ -763,22 +718,29 @@ async function blockGrabber(blockNum) {
         parseOn = false;
         //process.send(JSON.stringify({type: 'blockupdate', block: blockNum, synced:synced}));
         //log(`parseblock line 592 Block number: #${blockNum} head block: ${lastHeadBlock}`)
-        return parseBlock(blockNum);
+        return blockGrabber(blockNum);
       }
     }
   });
-}
+};//END blockGrabber
 
 var newbytesParsed;
 async function parseBlock(blockNum) {
 if(parseOn == true) {
- log(`Already parsing!`);
+   log(`CHAIN: Already parsing!`);
+} else if(parseOn == false && skipsyncnow == true && adminskipsync == true){
+   log(`CHAIN: ADMIN: Skipsync called!`);
+   await blockGrabber(blockNum, true);
+   log(`CHAIN: ADMIN: Skipsync Attempt Complete!`);
 }
-parseOn = true;
+
+    parseOn = true;
     newbytesParsed = 0
     newCurrentBlock = blockNum;
     scanrate++;
     await blockGrabber(blockNum);
+    if(verbose == true) return log(`CHAIN: Block #${blockNum} Parsed!`);
+    return true;
 };//END parseBlock
 
 // Lets Start this script!
@@ -795,22 +757,8 @@ var letsgo = async() => {
     if(synced === true) clearInterval(syncOutput);
   }, 1000);
 
-
   if (!process.argv[2]) {
     blockNum = await fetchLastBlockDB();
-    /*
-      hive.api.getDynamicGlobalProperties(await function (err, result) {
-          sleep(3000);
-          if (result) {
-              lastb = result["last_irreversible_block_num"];
-              if(blockNum > lastb){
-                blockNum = lastb;
-                log(`parseblock line 583`)
-                parseBlock(blockNum);
-              }
-          }
-      });
-*/
       if(typeof blockNum !== 'number'){
         synced = false;
         log("CHAIN: Start Block Undefined! Fetching Last Irreversible Block - Please Wait.");
@@ -831,7 +779,8 @@ var letsgo = async() => {
       blockNum = process.argv[2];
       parseBlock(blockNum);
   }
-}
+};//END letsgo
+
 letsgo();
 
 //calculate the current rate of operations scanned a second
@@ -980,6 +929,63 @@ async function bail(err) {
     }
 };//END bail
 
+
+process.on('message', async function(m) {
+  try {
+      m = JSON.parse(m);
+      if(config.debug == false) {
+        log(`CHAIN: chainSnoop.js Message:`);
+        log(m);
+      }
+  } catch(e) {
+    log(`CHAIN: ERROR: ${e}`);
+    return console.error(e);
+  }
+
+  switch(m.type){
+    case 'changenode':
+      if(m.username !== config.owner) {
+        log(`CHAIN: ERROR: User ${m.username} Tried to Change API Node!`);
+      } else if (m.username == config.owner) {
+        changenode();
+      } else {
+        log(`CHAIN: ERROR: No User Was Specified!`);
+      }
+    break;
+    case 'skipsync':
+      log(`m.socketid:`)
+      log(m.socketid)
+      if(m.username != owner) {
+        log(`CHAIN: ERROR: User ${m.username} Tried to skipsync!`);
+      } else if (m.username == owner) {
+        log(`CHAIN: ADMIN: Owner Attempting to SkipSync!`);
+        adminskipsync = true;
+        skipsyncnow = true;
+        parseOn = false;
+        await skipsync();
+      } else {
+        log(`CHAIN: ERROR: No User Was Specified!`);
+      }
+    break;
+    case 'grabacct':
+      log(`CHAIN: grabacct was called by ${m.username}`)
+      if (m.username != config.owner && m.username != "siteaudit") {
+        log(`CHAIN: ERROR: User ${m.username} Tried to Grab Accounts!`);
+      } else if(m.username == undefined) {
+        log(`CHAIN: ERROR: No User Was Specified!`);
+      } else {
+        //log(`CHAIN: Fetching @hive.loans Account for Audit`);
+        hotWalletData = await grabAcct(hotwallet);
+        //log(`CHAIN: Fetching @hive.loans.safe Account for Audit`);
+        coldWalletData = await grabAcct(coldwallet);
+          var walletData = [];
+          walletData.push(hotWalletData[0]);
+          walletData.push(coldWalletData[0]);
+          return process.send(JSON.stringify({type:'massemit', name: "sitewallets", payload: walletData}));
+      }
+    break;
+  }
+});//END Process on Message
 
 process.on("SIGINT", function () {
     shutdown = true;

@@ -2,6 +2,7 @@ canvas {
   display: block;
   vertical-align: bottom;
 }
+HTML, html, body, BODY { min-height: 100% !important; }
 
 .disabledImg {
     /* opacity: 0.4; */
@@ -185,7 +186,7 @@ outline: none;
 input:focus {
   border-radius: 6px;
   background: rgba(255,255,255,0.1) !important;
-  box-shadow: inset 0px 0px 5px 2px rgb(124 252 0 / 50%);
+  box-shadow: inset 0px 0px 4px 1px rgb(124 252 0 / 50%);
 }
 
 input[type=submit]:focus{
@@ -793,6 +794,24 @@ table::-webkit-scrollbar {
   width: 12px !important;
 }
 
+th {
+
+}
+
+#opencfdhead {
+ border: none !important;
+ font-size: smaller !important;
+}
+
+#opencfdtable {
+  padding-left: 0.3vw;
+  padding-right: 0vw;
+
+   border: none !important;
+  height: 10vh !important;
+
+}
+
 #loanMixedChartTable {margin-top: 0 !important;border: none !important;height: auto;min-height: -webkit-fill-available;}
 
 #loadloaninfo {
@@ -1060,6 +1079,13 @@ font-size: inherit;
   /* position: absolute; */
   }
 
+#trollusers {
+  float: right;
+  margin-right: 10%;
+  margin-left: -10%;
+  margin-top: 0.69%;
+}
+
 #trollbox {
   display: inline-block;
   overflow-y: scroll;
@@ -1187,6 +1213,7 @@ position: relative;
   text-align: center;
   padding: 0px !important;
   width:95%;
+  padding-top: 4px !important;
   margin: 0px  !important;
 }
 
@@ -1226,7 +1253,7 @@ position: relative;
     border-radius: 20px !important;
     border: inset 3px #212121 !important;
     width: 100% !important;
-    height: 50% !important;
+    height: 50%;
     max-height: 60% !important;
     display: flex;
     position: initial;
@@ -1500,6 +1527,10 @@ option {
   overflow-y: hidden;
   overflow-x: hidden;
 }
+#loanUserBalance {
+    border-bottom: 1px dotted;
+    cursor: grab;
+}
 
 #loanCreateDuration {
   text-align: right !important;
@@ -1680,6 +1711,11 @@ option {
   border-image: initial;
   margin-left: auto;
   margin-right: auto;
+}
+
+.smolinput {
+    width: 4.8vw !important;
+
 }
 
 .tdcentered {
@@ -2343,7 +2379,8 @@ textarea::-webkit-input-placeholder{
 }
 
 #loadAllLoansTable {
-    /* height: 55% !important; */
+    min-height: 100%;
+    height: 100% !important;
     overflow-y: scroll !important;
     margin-top: 0px !important;
     min-width: 100%;
@@ -2719,15 +2756,28 @@ footer {border-top: 3px inset #E31337;
 }
 
 #discord {
-  position: fixed !important;
-  height: 1vh;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-    color: #f0f0f8;
-    float: right;
-    margin-top: -0.16em;
-    right: -0.2em;
-    line-height:1vh;
+  color: #f0f0f8 !important;
+  float: right !important;
+  margin-top: 0.49% !important;
+  margin-right: 2% !important;
+  vertical-align: middle !important;
+  /* position: fixed !important; */
+  /* height: 1vh; */
+  /* padding-left: 0.5em; */
+  /* padding-right: 0.5em; */
+  /* color: #f0f0f8; */
+  /* float: right; */
+  /* margin-top: -0.16em; */
+  /* right: -0.2em; */
+  /* line-height:1vh; */
+}
+
+#github {
+color: #f0f0f8 !important;
+float: right !important;
+margin-top: 0.44% !important;
+margin-right: 3% !important;
+vertical-align: middle !important;
 }
 
 .hl-logo {
@@ -3082,6 +3132,45 @@ h3 {
 .tg-sort-desc:after{border-bottom:none;border-width:5px 5px 0}@media screen and (max-width: 767px) {.tg {width: auto !important;}.tg col {width: auto !important;}.tg-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;margin: auto 0px;}}
 
 
+.cardbox{
+    background-color: transparent;
+    width: 1vh;
+    height: 1vh;
+    transform: perspective(1vh);
+    padding: 15px;
+    margin-left: 15px;
+}
+.card{
+    /* width: 100%; */
+    /* height: 100%; */
+    text-align: center;
+    transition: transform 0.2s;
+    transform-style: preserve-3d;
+    box-shadow: -10px 10px 10px 0 rgba(0, 0, 0, 0.5);
+}
+.cardbox:hover .card{
+    transform: rotateY(180deg);
+}
+.card-front,
+.card-back{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-decoration: double !important;
+    font-size: unset;
+}
+.card-front{
+    transform: translateZ(1.5vh);
+}
+.card-back{
+    transform: rotateY(180deg) translateZ(1.5vh);
+}
+
 /*---------------------------------------------------
 -----------------------------------------------------
 
@@ -3381,4 +3470,4 @@ RESPONSIVE CSS SHIT
     background-color: lightblue;
   }
 }
-*/sssssssssssssssssssssssssssssssssssssssss
+*/

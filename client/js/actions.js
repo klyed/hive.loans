@@ -1581,6 +1581,10 @@ $("#withdrawInteger").change(function(){
   }
 });
 
+$('#withdrawbalance').on('click',function(){
+  wdCalc();
+});//END shmdf
+
 function copyStringToClipboard (str) {
    var el = document.createElement('textarea');
    el.value = str;

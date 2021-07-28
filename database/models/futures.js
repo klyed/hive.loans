@@ -20,10 +20,10 @@ module.exports = (sequelize, DataTypes) => {
     type: DataTypes.STRING,
     coin: DataTypes.STRING,
     amount: DataTypes.INTEGER,
-    openPrice: DataTypes.INTEGER,
-    closePrice: DataTypes.INTEGER,
-    stoploss: DataTypes.INTEGER,
-    liquidation: DataTypes.INTEGER,
+    openPrice: DataTypes.DECIMAL,
+    closePrice: DataTypes.DECIMAL,
+    stoploss: DataTypes.DECIMAL,
+    liquidation: DataTypes.DECIMAL,
     margin: DataTypes.INTEGER,
     profit: DataTypes.INTEGER,
     active: DataTypes.BOOLEAN,
@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     overnightfee: DataTypes.INTEGER
   }, {
     sequelize,
-    modelName: 'futures',
+    modelName: 'Futures',
   });
   return futures;
 };

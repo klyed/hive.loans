@@ -1,7 +1,7 @@
 ================
 ----------------
 The To-Do List
-This list is a best guess on what needs done before the next version of the site goes live (v0.1.0)
+This list is a best guess on what needs done before the next version of the site goes live (v0.1.?)
 It may not include everything that needs done to safely operate the site as an alpha test..
 ----------------
 ================
@@ -9,7 +9,7 @@ It may not include everything that needs done to safely operate the site as an a
 ================
 Profile Page
 ================
-- profile needs to properly parse metadata and have defaults if none found
+- profile needs to properly parse metadata and have defaults if none found ✔️
 
 ================
 Wallet Page

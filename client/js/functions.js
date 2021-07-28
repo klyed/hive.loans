@@ -1,20 +1,69 @@
-function keychainSend(from, to, amount, memo, coin){
-  hive_keychain.requestTransfer(from, to, amount, memo, coin.toUpperCase(), function(response) {
-      console.log(response);
-      if (response.success == true) {
-          showSuccess(`Deposit Transfer Success!<br><sup><sub><a target="_blank" style="color: white !important;" href="https://hiveblocks.com/tx/${response.result.id}">${response.result.id}</a></sub></sup>`);
-          //$('#depositView').click();
-          setTimeout(function(){
-            depositButtonWallet(uUsername, coin);
-          },5000);
+//--------------------------------------------------
+//     Utility & Function
+//--------------------------------------------------
+var showSuccess = function (text) {
+    alertify.success('<i class="fas fa-1x fa-check-circle circle-background-white" style="float: left;height:20px;width:20px;padding:0px;display:inline-flex;font-size:38px;margin-top:-11px;margin-left:-11px;"></i> ' + text + ' <i class="ajs-close" style=""></i>').dismissOthers();
+};//END showSuccess
+var showErr = function (text) {
+    alertify.error('<i class="fa fa-1x fa-exclamation-circle circle-background-white" style="float:left;height:20px;width:20px;padding:0px;display:inline-flex;font-size:38px;margin-top:-11px;margin-left:-11px;"></i> ' + text + ' <i class="ajs-close" style=""></i>').dismissOthers();//<i class="fa fa-2x fag-2x fa-exclamation-circle" style="color:red;float:left;    margin-left: 0.5vw;"></i>
+};//END showErr
 
-          bootbox.hideAll();
-      } else {
-        showErr(`Deposit Failed to Send!`);
-        console.log(response.error);
-      }
-  }, true);
-};
+var headLight = (e) => {
+  if(!e) return;
+    if(cl != e){
+        cl = e;
+        return $(`${e}`).css({'background':'rgba(28, 28, 28, 0.90)'});
+    }
+};//END headLight
+
+var headDim = (e) => {
+  if(!e) return;
+    if(dl != e){
+        dl = e;
+        return $(`${e}`).css({'background':'rgba(28, 28, 28, 1)'});
+    }
+};//END headDim
+
+var vhd = function(e) {
+  var t = e.value;
+  e.value = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 4)) : t;
+};//END vhd
+
+function checkExchangeWarning(){
+  if (showCFDWarning !== true){
+    $('#cfdWarning').fadeOut();
+  } else {
+    $('#cfdWarning').fadeIn();
+  }
+};//END checkExchangeWarning
+
+function closeCFDButton(id){
+  console.log(`closeCFDButton(${id})`)
+  if(!id) return showErr('No Contract ID was Specified!');
+  socket.emit('closecfd', {id:id, token: token}, function(err, data){
+    if(err) return(showErr('Something Went Wrong! Please Try Again!'));
+    if(data) {
+      console.log(data);
+      showSuccess(`${data.msg}`);
+    }
+  });
+};//END checkExchangeWarning
+
+function checkCFDWarning(){
+  if (showCFDWarning !== true){
+    $('#cfdWarning').fadeOut();
+  } else {
+    $('#cfdWarning').fadeIn();
+  }
+};//END checkCFDWarning
+
+function checkTVWarning(){
+  if (showTVWarning !== true){
+    $('#tradingviewfooter').fadeOut();
+  } else {
+    $('#tradingviewfooter').fadeIn();
+  }
+};//END checkTVWarning
 
 function ValidateEmail() {
     var inputVal = $("#newEmail").val().toString();
@@ -24,134 +73,111 @@ function ValidateEmail() {
     } else {
         $('#passerror').html('<b style="color:red;">Email Address is Invalid!</b>');
     }
-};
+};//END ValidateEmail
 
 function fixToPlaces(p) {
     if (p < 1) return parseInt(this);
     for (var s = "", i = 0; i < p; i++) s += "0";
     var x = (this + '.').split('.')
     return x[0] + "." + (x[1] + s).substr(0, p);
-};
+};//END fixToPlaces
 
-function checkExchangeWarning(){
-  if (showCFDWarning !== true){
-    $('#cfdWarning').fadeOut();
-  } else {
-    $('#cfdWarning').fadeIn();
-  }
-};
+function minTwoDigits(n) {
+  return (n < 10 ? '0' : '') + n;
+};//END minTwoDigits
 
-function checkCFDWarning(){
-  if (showCFDWarning !== true){
-    $('#cfdWarning').fadeOut();
-  } else {
-    $('#cfdWarning').fadeIn();
-  }
-};
-
-var cl;
-var headLight = (e) => {
-  if(e){
-    if(cl != e){
-        cl = e;
-        return $(`${e}`).css({'background':'rgba(28, 28, 28, 0.90)'});
+function getNumber(theNumber) {
+    if(theNumber > 0){
+      return "+" + theNumber;
+    } else {
+      return "&nbsp;" + theNumber;
     }
-  }
-};
+};//END getNumber
 
-var dl;
-var headDim = (e) => {
-  if(e){
-    if(dl != e){
-        dl = e;
-        return $(`${e}`).css({'background':'rgba(28, 28, 28, 1)'});
-    }
-  }
-};
-
-var showErr = function (text) {
-    alertify.error('<i class="fa fa-1x fa-exclamation-circle circle-background-white" style="float:left;height:20px;width:20px;padding:0px;display:inline-flex;font-size:38px;margin-top:-11px;margin-left:-11px;"></i> ' + text + ' <i class="ajs-close" style=""></i>').dismissOthers();//<i class="fa fa-2x fag-2x fa-exclamation-circle" style="color:red;float:left;    margin-left: 0.5vw;"></i>
-};
-var showSuccess = function (text) {
-    alertify.success('<i class="fas fa-1x fa-check-circle circle-background-white" style="float: left;height:20px;width:20px;padding:0px;display:inline-flex;font-size:38px;margin-top:-11px;margin-left:-11px;"></i> ' + text + ' <i class="ajs-close" style=""></i>').dismissOthers();
-};
-
-var processState = async(data, history) => {
-  console.log(`var processState = async(data, history)`);
-    console.log(`data:`);
-  console.log(data);
-    console.log(`history:`);
-  console.log(history);
-  if(!data) return false;
-  if(!history) history = false;
-  var loans = data;
-  var ourloans = [];
- loans.map(function(key) {
-   if(key.borrower == uUsername && key.completed == 0 && key.active == 1){
-     if (key.cancelled !== -1) {
-         delete key.cancelled;
-     }
-     if (key.id !== -1) {
-         delete key.id;
-     }
-     if (key.active !== -1) {
-         delete key.active;
-     }
-     if (key.createdAt !== -1) {
-         delete key.createdAt;
-     }
-       ourloans.push(key);
-   } else {
-     if(history == false){
-       if(key.completed == 1) {
-        return delete key;
-       }
-       delete key.id;
-       delete key.userId;
-       delete key.txid;
-       delete key.endtxid;
-       delete key.collected;
-       delete key.nextcollect;
-       delete key.currentpayments;
-       delete key.totalpayments;
-       delete key.payments;
-       //delete key.createdAt;
-       delete key.updatedAt;
-       ourloans.push(key);
-     }
-
+var showPopup = function(text, type){
+  var color;
+  var title;
+  if(type == 'error') {color = 'red'; title = "An Error has Occured!";}
+  if(type == 'success') {color = 'lawngreen'; title = "Important Information!";}
+  var loadingContent = `<center><h3 style="color:${color}">${title}</h3><b style="color:${color};">${text}</b><br><br><button id="popupClose" class="push_button4">Close</button></center>`;
+      var loadingContent = `${title}\n${text}`;
+      showErr(loadingContent);
       /*
-      delete key.createdAt;
-      delete key.nextcollect;
-            delete key.genesis;
-                  delete key.borrower;
-                        delete key.username;
-                        delete key.endblock;
-                                                delete key.endblocktxid;
-      delete key.fine;
-      delete key.deployfee;
-      delete key.cancelfee;
-      delete key.updatedAt;
-      delete key.txid;
+      //$("#jumbotron").html(loadingContent);
+      //$("#jumbotron").css({'height':'fit-content','width':'auto'});
+      //$("#jumbotron").center();
+      //$("#jumbotron").fadeIn('slow');
       */
+};//END showPopup
 
-   }
-  });
-  //if(!data) {data = []};
-  //if(!ourloans) {ourloans = []};
-  //function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
-  return CreateTableFromJSON(ourloans, 'loans', 'loanChartHolder', 'loanMixedChartTable', 'loanMixedChartHead');
-};
+var flashsec = function(elements) {
+  $(elements).css({'color':'#CC0000 !important'});
+  $(elements).animate({'color':'#000000 !important'}, 300);
+  $(elements).css({'color':'#000000 !important'});
+};//END flashsec
 
-function checkTVWarning(){
-  if (showTVWarning !== true){
-    $('#tradingviewfooter').fadeOut();
-  } else {
-    $('#tradingviewfooter').fadeIn();
+var flashwin = function(elements, ms) {
+  if(!ms) ms = 800;
+  $(elements).css({'color':'#00FF00 !important'});
+  $(elements).animate({'color':'#FFFFFF !important'}, ms);
+  $(elements).css({'color':'#FFFFFF !important'});
+};//END flashwin
+
+var flashlose = function(elements, ms) {
+  if(!ms) ms = 800;
+  $(elements).css({'color':'#CC0000 !important'});
+  $(elements).animate({'color':'#FFFFFF !important'}, ms);
+  $(elements).css({'color':'#FFFFFF !important'});
+};//END flashlose
+
+var updateQRCODE = function(v){
+    $('#qrcode').qrcode({render: "table", text	: v});
+    $("#qrtext").text(v);
+};//END updateQRCODE
+
+var floor = function(n, decimalPlaces){
+    var m = Math.pow(10,decimalPlaces);
+    return (Math.floor(n*m)/m).toFixed(decimalPlaces);
+};//END floor
+
+var ceil = function(n, decimalPlaces){
+    var m = Math.pow(10,decimalPlaces);
+    return (Math.ceil(n*m)/m).toFixed(decimalPlaces);
+};//END ceil
+
+var round = function(n, decimalPlaces){
+    var m = Math.pow(10,decimalPlaces);
+    return (Math.round(n*m)/m).toFixed(decimalPlaces);
+};//END round
+
+function simpleJSONstringify(obj) {
+    var prop, str, val, isArray = obj instanceof Array;
+    if (typeof obj !== "object") return false;
+    str = isArray ? "[" : "{";
+    function quote(str) {
+        if (typeof str !== "string") str = str.toString();
+        return str.match(/^\".*\"$/) ? str : '"' + str.replace(/"/g, '\\"') + '"'
+    }
+    for (prop in obj) {
+        if (!isArray) {
+            // quote property
+            str += quote(prop) + ": ";
+        }
+        // quote value
+        val = obj[prop];
+        str += typeof val === "object" ? simpleJSONstringify(val) : quote(val);
+        str += ", ";
+    }
+    // Remove last colon, close bracket
+    str = str.substr(0, str.length - 2)  + ( isArray ? "]" : "}" );
+    return str;
+};//END simpleJSONstringify
+
+async function splitOffVests(a){
+  if(a){
+    return parseFloat(a.split(' ')[0]);
   }
-};
-
-var scrollspeed = 5;
+};//END splitOffVests
 
 function startScrollbar() {
   var items, scroller = $('#scroller');
@@ -177,8 +203,419 @@ function startScrollbar() {
   scroll();
 };//END startScrollbar
 
+function commaNumber(nStr) {
+    nStr += '';
+    var x = nStr.split('.');
+    var x1 = x[0];
+    var x2 = x.length > 1 ? '.' + x[1] : '';
+    var rgx = /(\d+)(\d{3})/;
+    while (rgx.test(x1)) {
+        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+    }
+    return x1 + x2;
+};//END commaNumber
 
-var makeleasetoggle = false
+function toThree(n) {
+    var number = n.toString().substring(0, n.toString().indexOf(".") + 4);
+    parseFloat(number);
+    return number;
+};//END toThree
+
+function isNumberKey(evt) {
+    var charCode = (evt.which) ? evt.which : evt.keyCode;
+    if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+        showErr("Numbers & Decimals Only!");
+        return false;
+    }
+    return true;
+};//END isNumberKey
+
+function isNearSeven(val) {
+  if(val % 7){
+    return Math.round(val / 7);
+  } else {
+    console.log(`not multiple of 7`);
+  }
+};//END isNearSeven
+
+function between(value, start, end){
+  if(value < start){
+    return 10;
+  } else if (value > end){
+    return 30;
+  }
+};//END between
+
+async function encrypt(contractID, pgp){
+console.log(`function encrypt(${contractID}, ${pgp})`);
+  $("#surrenderKeysTable").hide();
+  $("#afterSurrenderButtonClick").removeClass('hidden');
+  $("#afterSurrenderButtonClick").text(`Awaiting Account Key Manager Response...`)
+  const { data: encrypted } = await openpgp.encrypt({
+      message: openpgp.message.fromText(`[{"${uUsername}":{"passdata":"${$('#masterAcctPass').val()}"}}]`),                 // input as Message object
+      publicKeys: (await openpgp.key.readArmored(pgp)).keys});
+  return finalizeLoan(`${contractID}`, `${encrypted}`);
+};//END encrypt
+
+var loginKey = function(event){
+    var keycode = (event.keyCode ? event.keyCode : event.which);
+    if(keycode == "13"){
+        submitLogin();
+    }
+};//END
+
+var hiveAmountChecker = async(amount, asset) => {
+  var response = await hive.formatter.amount(_amount, asset);
+  return response;
+};//END
+
+function changenode(){
+  console.log(`changenode!`);
+  socket.emit('changenode', {token: token}, function(err, data){
+    if(err) {
+      console.log(`changenode ERROR:`);
+      console.log(err);
+    }
+    if(data){
+      console.log(data);
+    }
+  });
+};//END changenode
+
+function handsBlink(side) {
+  var flipped = '';
+  var flash;
+  var hand;
+  var handselector = Math.floor(Math.random() * (5 - 1) + 1);
+  if(side == 'left') {
+    flipped = ' fa-flip-horizontal ';
+    flash = 'leftflash';
+    hand = 'lefthand';
+  } else {
+    flash = 'rightflash';
+    hand = 'righthand';
+  }
+  switch(handselector){
+    case 1:
+    string = `<i class="fas fa-2x fa-hand-holding-medical ${flipped} ${hand}"></i>`;
+    break;
+    case 2:
+    string = `<i class="fas fa-2x fa-hand-holding-heart ${flipped} ${hand}"></i>`;
+    break;
+    case 3:
+    string = `<i class="fas fa-2x fa-hand-holding-usd ${flipped} ${hand}"></i>`;
+    break;
+    case 4:
+    string = `<i class="fas fa-2x fa-hand-holding-water ${flipped} ${hand}"></i>`;
+    break;
+    case 5:
+    string = `<i class="fas fa-2x fa-hand-holding ${flipped} ${hand}"></i>`;
+    break;
+  }
+  $(`#${flash}`).hide();
+  $(`#${flash}`).html(`${string}`);
+  $(`#${flash}`).fadeIn('slow');
+};//END handsBlink
+
+var blonker = setInterval(function(){
+    blonkcount++;
+    if(blonkcount % 2 == 0){
+        handsBlink('left');
+    } else {
+        handsBlink('right');
+    }
+}, 3000);//END blonker
+
+function togglesiteinfo() {
+  if(showsiteinfo == true) {
+    $('#settings-siteinfo').val('Hide');
+    $('.siteinfo').removeClass('hidden');
+    showsiteinfo == false;
+  } else if(showsiteinfo == false) {
+    $('#settings-siteinfo').val('Show');
+    $('.siteinfo').addClass('hidden');
+    showsiteinfo == true;
+  } else {
+    $('#settings-siteinfo').val('Hide');
+    $('.siteinfo').removeClass('hidden');
+    showsiteinfo = true;
+  }
+};//END togglesiteinfo
+
+//==================================================
+//--------------------------------------------------
+//     Nav & Navigation buttons & Navber
+//--------------------------------------------------
+function navbarBlitz(data) {
+  console.log(`navbarBlitz:`);
+  clearInterval(blonker);
+  var screenWidth = window.innerWidth;
+  if((screenWidth / $('.navbar').width()) < 3 ){
+    $('.navbar').css({"width":"20%"});
+    $('#thenavbarthing').css({"width":"10%"});
+    //$('li').animate({"margin-left":"3px"}, 900);
+    $('#arrowin').html('<i class="fas fa-chevron-right" title="Click here to Grow Menu"></i>');
+    $('#coloricon').addClass('hidden');
+    $("#acct").addClass('hidden');
+    $("#loans").addClass("hidden");
+    $("#lend").addClass("hidden");
+    $("#tools").addClass("hidden");
+    $("#faq").addClass("hidden");
+    $("#wallet").addClass("hidden");
+    $("#profile").addClass("hidden");
+    $("#futures").addClass("hidden");
+    $("#login").addClass('hidden');
+    $("#logout").addClass('hidden');
+    $("#bugs").addClass('hidden');
+    $("#loansmenu").addClass("hidden");
+    $("#joinmenu").addClass("hidden");
+    $("#profilemenu").addClass('hidden');
+    $("#futuresmenu").addClass('hidden');
+    $("#jumbotron").css({'height':`'${($("#jumbotron").height() + 5)}%'`});
+    return true;
+  } else if ((screenWidth / $('.navbar').width()) > 3 ) {
+    $('.navbar').css({"width":"99%"});
+    $('#thenavbarthing').css({"width":"50%"});
+    //$('li').animate({"margin-left":"40px"}, 900);
+    $('#arrowin').html('<i class="fas fa-chevron-left" title="Click here to Shrink Menu"></i>');
+    setTimeout(function(){
+      $('#coloricon').removeClass('hidden');
+      $("#acct").removeClass('hidden');
+      $("#loans").removeClass("hidden");
+      $("#lend").removeClass("hidden");
+      $("#tools").removeClass("hidden");
+      $("#faq").removeClass("hidden");
+      $("#wallet").removeClass("hidden");
+      $("#profile").removeClass("hidden");
+      $("#futures").removeClass("hidden");
+      //$("#login").addClass('hidden').fadein('fast');
+      $("#logout").removeClass('hidden');
+      $("#bugs").removeClass('hidden');
+      $("#loansmenu").removeClass("hidden");
+      $("#joinmenu").removeClass("hidden");
+      $("#profilemenu").removeClass('hidden');
+      $("#futuresmenu").removeClass('hidden');
+      $("#jumbotron").css({'height':`'${($("#jumbotron").height() - 5)}%'`});
+    }, 900)
+    return true;
+  } else {
+    return false;
+  }
+};//END navbarBlitz
+
+function navCheck() {
+    if(navList){
+      if(navList.length >= 100) {
+        navList.pop();
+        return true;
+      } else {
+        return true;
+      }
+    } else {
+      console.log(`No Navigation History!`);
+      //navList = [];
+      return false;
+    }
+};//END navCheck
+
+async function navLast(u) {
+    var lastNav = navList[navList.length - 1];
+    if(navList){
+      if(u == lastNav){
+        return true;
+      } else {
+        return navList[navList.length - 1];
+      }
+    } else {
+      console.log(`No Navigation History!`);
+      //navList = [];
+      return false;
+    }
+};//END navLast
+
+async function navAdd(u) {
+    if(navList){
+      console.log(`Adding ${u} to Navigation!`)
+      if(u){
+        var isLast = await navLast(`${u}`);
+        if(isLast !== true){
+          navList.push(`${u}`);
+          navIndex = navList.length - 1;
+          if(ourIndex = (navList.length - 1)) {
+            ourIndex++;
+            navIndex = ourIndex;
+            console.log(`ourIndex: ${ourIndex}`)
+          } else if((navList.length - 1) <= ourIndex){
+            ourIndex = (navList.length - 1);
+          } else {
+            ourIndex = (navList.length - 1);
+          }
+          console.log(`ourIndex: ${ourIndex}`)
+        } else {
+          console.log(`Already Last Nav Entry!`)
+        }
+        console.log(navList);
+        return true;
+      } else {
+        console.log(`Failed to Add Navigation!`);
+        return false;
+      }
+    } else {
+      console.log(`No Navigation History, Adding ${u}!`);
+      navList.push(`${u}`);
+      return false;
+    }
+};//END navAdd
+
+function navBack() {
+    if(navList){
+      if(navList.length < 1) {
+        $('#jumboBack').css({"color":"grey"});
+        $('#jumboForward').css({"color":"grey"});
+        console.log(`No Navigation History!`);
+        return false;
+      } else {
+        $('#jumboBack').css({"color":"white"});
+        $('#jumboForward').css({"color":"white"});
+        if(ourIndex > 0) {
+          ourIndex--;
+          console.log(`ourIndex: ${ourIndex}`)
+        }
+        if(ourIndex == (navList.length - 1)) {
+          ourIndex = (navList.length - 2);
+          console.log(`ourIndex: ${ourIndex}`)
+        }
+        $(`#${navList[ourIndex]}`).click();
+        return true;
+      }
+    } else {
+      console.log(`No Navigation History!`);
+      navList = [];
+      return false;
+    }
+};//END navBack
+
+async function navForward() {
+    if(navList){
+      if(navList.length < 1) {
+        console.log(`No Navigation History!`);
+        return false;
+      } else {
+        if(ourIndex < (navList.length - 1)) {
+          ourIndex++;
+          console.log(`ourIndex: ${ourIndex}`)
+        }
+        var isLast = await navLast(`${navList[ourIndex]}`);
+        if(isLast == true){
+          return navList.pop();
+        }
+        if(isLast != false){
+          return navList.pop();
+        }
+        $(`#${navList[ourIndex]}`).click();
+        return true;
+      }
+    } else {
+      console.log(`No Navigation History!`);
+      navList = [];
+      return false;
+    }
+};//END navForward
+
+//==================================================
+//--------------------------------------------------
+//     Keychain
+//--------------------------------------------------
+function keychainSend(from, to, amount, memo, coin){
+  hive_keychain.requestTransfer(from, to, amount, memo, coin.toUpperCase(), function(response) {
+      console.log(response);
+      if (response.success == true) {
+          showSuccess(`Deposit Transfer Success!<br><sup><sub><a target="_blank" style="color: white !important;" href="https://hiveblocks.com/tx/${response.result.id}">${response.result.id}</a></sub></sup>`);
+          //$('#depositView').click();
+          setTimeout(function(){
+            depositButtonWallet(uUsername, coin);
+          },5000);
+
+          bootbox.hideAll();
+      } else {
+        showErr(`Deposit Failed to Send!`);
+        console.log(response.error);
+      }
+  }, true);
+};//END keychainSend
+
+//==================================================
+//--------------------------------------------------
+//     Hive Power Lease & Leasing
+//--------------------------------------------------
+function calculateAPR() {
+  var e;
+  var duration = parseFloat($('#hpleaseduration').val());
+  var payment = parseFloat($('#hpleasepayment').val());
+  var amount = parseFloat($('#hpleaseamount').val());
+  if(!duration) {
+    $('#createNewLeaseButton').addClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+    return $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
+  }
+  if(!payment) {
+    $('#createNewLeaseButton').addClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+    return $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
+  }
+  if(!amount)  {
+    $('#createNewLeaseButton').addClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+    return $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
+  }
+  console.log(`duration: ${duration}`);
+  console.log(`payment: ${payment}`);
+  console.log(`amount: ${amount}`);
+  if(duration > 52){
+    $('#hpleaseduration').val(52);
+  }
+  if(duration < 1) {
+    $('#hpleaseduration').val(1);
+  }
+  if(amount < 1) {
+    $('#hpleaseamount').val(1);
+  }
+  var totalCost = duration * payment;
+  console.log(`totalCost: ${totalCost}`)
+  var userBal = parseFloat(uHIVEbalance / 1000);
+
+
+  try {
+    e = (365 / (7 * duration + 5) * (.9 * payment) / amount) * 100;
+    console.log(e)
+  } catch(fuck) {
+    e = fuck;
+    $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
+    $('#createNewLeaseButton').addClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+  }
+
+  if(typeof e !== "number" && typeof e !== NaN) {
+    $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
+    $('#createNewLeaseButton').addClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+  } else {
+    $('#showCreateLeaseWarning').html(`<b>${e.toFixed(4)}</b>% APR - Cost: <b id="boldLeaseTotal">${(totalCost).toFixed(3)} <span class="basetype">HIVE</span> <span class="logospan"><i class="fab fa-hive" style="color:#E31337;"></i></span>`);
+    $('#createNewLeaseButton').removeClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+  }
+  if(totalCost > userBal){
+    console.log(`ERMAGERD WAY TOO MUCH`)
+    $('#boldLeaseTotal').css({'color':'#FF0000 !important'});
+    $('#createNewLeaseButton').addClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', true);
+  } else {
+    $('#boldLeaseTotal').css({'color':'#FFFFFF !important'});
+    $('#createNewLeaseButton').removeClass('disabledImg');
+    $('#createNewLeaseButton').prop('disabled', false);
+  }
+};//END calculateAPR
+
 function leaseMakeShow() {
   console.log(`leaseMakeShow() - ${makeleasetoggle}`)
   if(makeleasetoggle == true) {
@@ -198,7 +635,7 @@ function leaseMakeShow() {
     $('#leaseholdertd').css({'height':'61.5%'});
     $('#jumbotron').css({'height':'auto'});
   }
-}
+};//END leaseMakeShow
 
 function createNewLease() {
   var e;
@@ -266,165 +703,35 @@ function createNewLease() {
     $('#createNewLeaseButton').removeClass('disabledImg');
     $('#createNewLeaseButton').prop('disabled', false);
   }
-}
+};//END createNewLease
 
-function calculateAPR() {
-  var e;
-  var duration = parseFloat($('#hpleaseduration').val());
-  var payment = parseFloat($('#hpleasepayment').val());
-  var amount = parseFloat($('#hpleaseamount').val());
-  if(!duration) {
-    $('#createNewLeaseButton').addClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-    return $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
-  }
-  if(!payment) {
-    $('#createNewLeaseButton').addClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-    return $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
-  }
-  if(!amount)  {
-    $('#createNewLeaseButton').addClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-    return $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
-  }
-  console.log(`duration: ${duration}`);
-  console.log(`payment: ${payment}`);
-  console.log(`amount: ${amount}`);
-  if(duration > 52){
-    $('#hpleaseduration').val(52);
-  }
-  if(duration < 1) {
-    $('#hpleaseduration').val(1);
-  }
-  if(amount < 1) {
-    $('#hpleaseamount').val(1);
-  }
-  var totalCost = duration * payment;
-  console.log(`totalCost: ${totalCost}`)
-  var userBal = parseFloat(uHIVEbalance / 1000);
-
-
-  try {
-    e = (365 / (7 * duration + 5) * (.9 * payment) / amount) * 100;
-    console.log(e)
-  } catch(fuck) {
-    e = fuck;
-    $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
-    $('#createNewLeaseButton').addClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-  }
-
-  if(typeof e !== "number" && typeof e !== NaN) {
-    $('#showCreateLeaseWarning').html(`Please Fill in Above Inputs`);
-    $('#createNewLeaseButton').addClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-  } else {
-    $('#showCreateLeaseWarning').html(`<b>${e.toFixed(4)}</b>% APR - Cost: <b id="boldLeaseTotal">${(totalCost).toFixed(3)} <span class="basetype">HIVE</span> <span class="logospan"><i class="fab fa-hive" style="color:#E31337;"></i></span>`);
-    $('#createNewLeaseButton').removeClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-  }
-  if(totalCost > userBal){
-    console.log(`ERMAGERD WAY TOO MUCH`)
-    $('#boldLeaseTotal').css({'color':'#FF0000 !important'});
-    $('#createNewLeaseButton').addClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', true);
-  } else {
-    $('#boldLeaseTotal').css({'color':'#FFFFFF !important'});
-    $('#createNewLeaseButton').removeClass('disabledImg');
-    $('#createNewLeaseButton').prop('disabled', false);
-  }
-}
-
-var shmdftoggle = false
-function shmdf() {
-  console.log(`shmdf() - ${shmdftoggle}`)
-  if(shmdftoggle == true) {
-    shmdftoggle = false;
-    $('#showHideManDep').html('Show');
-    $('#mandepinfo').fadeOut();
-  } else {
-    shmdftoggle = true;
-    $('#showHideManDep').html('Hide');
-    $('#mandepinfo').fadeIn();
-  }
-}
-
-$('#withdrawbalance').on('click',function(){
-  wdCalc();
-});
-
-function wdnow(coin, fee, security) {
-      console.log('withdrawit!');
-      showSuccess('Processing Withdraw - Please Wait!');
-      $('#sending').html('<i style="color:grey" class="fa fa-pulsener fa-pulse fa-2x fa-fw"></i>');
-      if(uUsername != 'klye' || $('#withdrawAmount').val() < 1){
-        return showErr(`Must Withdraw Atleast 1 ${coin}`);
-      }
-      socket.emit("withdraw", {
-          amount: $('#withdrawInteger').val(),
-          account: $('#withdrawAcct').val(),
-          memo: $('#withdrawMemo').val(),
-          type: coin,
-          fee: fee,
-          security: security,
-          token: token
-      }, function(err, cb) {
-          if (err) {
-              $('#sending').html(`<br><b style='color:red;'>${err}</b>`);
-              $('#withdrawit').html(`ENTER AMOUNT`);
-              return showErr(`${err}`);
-          }
-          if (cb) {
-              console.log(cb);
-              token = cb.token;
-              showSuccess('Withdrawal Success!');
-              showWallet(uUsername);
-              bootbox.hideAll();
-          }
-      })
-  }
-
-function calctotal(fee, coin){
-    var thetotal;
-    var thisval = parseFloat($("#withdrawInteger").val());
-    var balance = parseFloat($("#tipbalance").val());
-    $("#tipbalance").attr('title', `Click to Withdraw All Your ${coin.toUpperCase()}`);
-    thetotal = thisval - fee;
-    if (thetotal <= balance) {
-        flashwin($("#wdtotal"))
-        $("#wdtotal").html(`You'll receive ${thetotal.toFixed(3)} ${coin}`);
-        $("#wdbuttontext").html(`WITHDRAW <span class="wdtype">HIVE</span> <span id="wdlogo"><i class="fab fa-fw fa-hive" style="color:#E31337;"></i></span>`);
-        $('#withdrawit').attr("disabled", false);
-    } else {
-        flashlose($("#wdtotal"))
-        $("#wdtotal").html(`Insufficient <span class="wdtype">HIVE</span> <span id="wdlogo"><i class="fab fa-fw fa-hive" style="color:#E31337;"></i></span> Balance`);
-        $("#wdbuttontext").html(`Error`);
-        $('#withdrawit').attr("disabled", true);
-    }
-}
-
-  function addData(data, chart) {
+//==================================================
+//--------------------------------------------------
+//     Charts & Chart Data Update
+//--------------------------------------------------
+function addData(data, chart) {
     if(data == undefined) return;
     if(typeof hivechart == undefined) return;
     console.log(`addData data:`);
     console.log(data);
     var datasets = [{data:data}];
     dataChart.push(datasets);
-  }
+};//END addData
 
-  function removeData(chart) {
+function removeData(chart) {
       chart.data.labels.pop();
       chart.data.datasets.forEach((dataset) => {dataset.data.pop()});
       chart.update();
-  }
+};//removeData
 
+
+//==================================================
   var loansHistoryShow = false;
   function loansHistorySwitch() {
   console.log(`loansHistorySwitch Called! loansHistoryShow: ${loansHistoryShow}`);
   if(loansHistoryShow == false){
     $('#openLoansHistoryType').text(`Open Contracts`);
-    $('#centerLoanTableType').text(`Past`);
+    $('#centerLoanTableType').text(`Previous`);
     $('#centerExchangeTable').html(`Your Closed Past <span class="loanbase">HIVE</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> Contracts`);
     loansHistoryShow = true;
   } else {
@@ -433,7 +740,7 @@ function calctotal(fee, coin){
     $('#centerExchangeTable').html(`Your Current Open <span class="loanbase">HIVE</span> <span class="loanlogo"><i class="fab fa-hive" style="color:#E31337;"></i></span> Contracts`);
     loansHistoryShow = false;
   }
-}
+};//END
 
   var exchageHistoryShow = false;
   function exchangeHistorySwitch() {
@@ -447,7 +754,7 @@ function calctotal(fee, coin){
       $('#centerExchangeTable').html(``);
       exchageHistoryShow = false;
     }
-  }
+  };//END
 
   var cfdHistoryShow = false;
   function cfdHistorySwitch() {
@@ -461,143 +768,20 @@ function calctotal(fee, coin){
       $('#centerFuturesTable').html(`Your Current Open <span class="cfdtype">HIVE</span> Positions`);
       cfdHistoryShow = false;
     }
-  }
+  };//END cfdHistorySwitch
 
-  function commaNumber(nStr) {
-      nStr += '';
-      var x = nStr.split('.');
-      var x1 = x[0];
-      var x2 = x.length > 1 ? '.' + x[1] : '';
-      var rgx = /(\d+)(\d{3})/;
-      while (rgx.test(x1)) {
-          x1 = x1.replace(rgx, '$1' + ',' + '$2');
-      }
-      return x1 + x2;
-  };
-
-  let navList = [];
-  let navIndex = 0;
-  let ourIndex = 0;
-
-  function navCheck() {
-    if(navList){
-      if(navList.length >= 100) {
-        navList.pop();
-        return true;
-      } else {
-        return true;
-      }
+  function shmdf() {
+    console.log(`shmdf() - ${shmdftoggle}`)
+    if(shmdftoggle == true) {
+      shmdftoggle = false;
+      $('#showHideManDep').html('Show');
+      $('#mandepinfo').fadeOut();
     } else {
-      console.log(`No Navigation History!`);
-      //navList = [];
-      return false;
+      shmdftoggle = true;
+      $('#showHideManDep').html('Hide');
+      $('#mandepinfo').fadeIn();
     }
-  }
-
-  async function navLast(u) {
-    var lastNav = navList[navList.length - 1];
-    if(navList){
-      if(u == lastNav){
-        return true;
-      } else {
-        return navList[navList.length - 1];
-      }
-    } else {
-      console.log(`No Navigation History!`);
-      //navList = [];
-      return false;
-    }
-  }
-
-  async function navAdd(u) {
-    if(navList){
-      console.log(`Adding ${u} to Navigation!`)
-      if(u){
-        var isLast = await navLast(`${u}`);
-        if(isLast !== true){
-          navList.push(`${u}`);
-          navIndex = navList.length - 1;
-          if(ourIndex = (navList.length - 1)) {
-            ourIndex++;
-            navIndex = ourIndex;
-            console.log(`ourIndex: ${ourIndex}`)
-          } else if((navList.length - 1) <= ourIndex){
-            ourIndex = (navList.length - 1);
-          } else {
-            ourIndex = (navList.length - 1);
-          }
-          console.log(`ourIndex: ${ourIndex}`)
-        } else {
-          console.log(`Already Last Nav Entry!`)
-        }
-        console.log(navList);
-        return true;
-      } else {
-        console.log(`Failed to Add Navigation!`);
-        return false;
-      }
-    } else {
-      console.log(`No Navigation History, Adding ${u}!`);
-      navList.push(`${u}`);
-      return false;
-    }
-  }
-
-  function navBack() {
-    if(navList){
-      if(navList.length < 1) {
-        $('#jumboBack').css({"color":"grey"});
-        $('#jumboForward').css({"color":"grey"});
-        console.log(`No Navigation History!`);
-        return false;
-      } else {
-        $('#jumboBack').css({"color":"white"});
-        $('#jumboForward').css({"color":"white"});
-        if(ourIndex > 0) {
-          ourIndex--;
-          console.log(`ourIndex: ${ourIndex}`)
-        }
-        if(ourIndex == (navList.length - 1)) {
-          ourIndex = (navList.length - 2);
-          console.log(`ourIndex: ${ourIndex}`)
-        }
-        $(`#${navList[ourIndex]}`).click();
-        return true;
-      }
-    } else {
-      console.log(`No Navigation History!`);
-      navList = [];
-      return false;
-    }
-  }
-
-  async function navForward() {
-    if(navList){
-      if(navList.length < 1) {
-        console.log(`No Navigation History!`);
-        return false;
-      } else {
-        if(ourIndex < (navList.length - 1)) {
-          ourIndex++;
-          console.log(`ourIndex: ${ourIndex}`)
-        }
-        var isLast = await navLast(`${navList[ourIndex]}`);
-        if(isLast == true){
-          return navList.pop();
-        }
-        if(isLast != false){
-          return navList.pop();
-        }
-        $(`#${navList[ourIndex]}`).click();
-        return true;
-      }
-    } else {
-      console.log(`No Navigation History!`);
-      navList = [];
-      return false;
-    }
-  }
-
+  };//END
 
   function cmcpricecheck() {
     try {
@@ -609,7 +793,7 @@ function calctotal(fee, coin){
       } catch(error) {
         console.log(error);
       }
-    };
+    };//END
 
 var tickerCurrency = function() {
   if(tickercurrency == 'usd'){
@@ -627,7 +811,7 @@ var tickerCurrency = function() {
     $('#footerprice').val(lastHivePrice.toFixed(6));
     $('#pricetype').html(tickercurrency.toUpperCase());
   }
-}
+};//END
 
 var btcCurrency = function() {
     $('#pricecheckcurrencypre').html('<i class="fab fa-bitcoin" style="color:#f2a900;"></i>');
@@ -636,7 +820,7 @@ var btcCurrency = function() {
     $('#footerprice').html(lastHiveBTCPrice.toFixed(8));
     $('#footerprice').val(lastHiveBTCPrice.toFixed(8));
     $('#pricetype').html(tickercurrency.toUpperCase());
-}
+};//END
 
 var usdCurrency = function() {
     $('#pricecheckcurrencypre').html('$');
@@ -645,7 +829,7 @@ var usdCurrency = function() {
     $('#footerprice').html(lastHivePrice.toFixed(6));
     $('#footerprice').val(lastHivePrice.toFixed(6));
     $('#pricetype').html(tickercurrency.toUpperCase());
-}
+};//END
 
 
 function getSiteStats() {
@@ -676,12 +860,9 @@ function getSiteStats() {
   <span id="siteOnLoan"><b>HIVE Outstanding</b>:<br></span><br>
   */
 });
-}
+};//END
 
-var vhd = function(e) {
-  var t = e.value;
-  e.value = (t.indexOf(".") >= 0) ? (t.substr(0, t.indexOf(".")) + t.substr(t.indexOf("."), 3)) : t;
-}
+
 
 async function getAcct() {
   console.log(`getAcct called`);
@@ -799,165 +980,7 @@ async function getAcct() {
       $("#showRecAcct").text(`@${recoverAcct}`);
   });
   }
-}
-
-
-
-
-
-var banlist = [];
-
-var loginKey = function(event){
-    var keycode = (event.keyCode ? event.keyCode : event.which);
-    if(keycode == "13"){
-        submitLogin();
-    }
-};
-
-var hiveAmountChecker = async(amount, asset) => {
-  var response = await hive.formatter.amount(_amount, asset);
-  return response;
-}
-
-
-function changenode(){
-  console.log(`changenode!`);
-  socket.emit('changenode', {token: token}, function(err, data){
-    if(err) {
-
-    }
-    if(data){
-
-    }
-  });
-}
-
-function handsBlink(side) {
-  var flipped = '';
-  var flash;
-  var hand;
-  var handselector = Math.floor(Math.random() * (5 - 1) + 1);
-  if(side == 'left') {
-    flipped = ' fa-flip-horizontal ';
-    flash = 'leftflash';
-    hand = 'lefthand';
-  } else {
-    flash = 'rightflash';
-    hand = 'righthand';
-  }
-  switch(handselector){
-    case 1:
-    string = `<i class="fas fa-2x fa-hand-holding-medical ${flipped} ${hand}"></i>`;
-    break;
-    case 2:
-    string = `<i class="fas fa-2x fa-hand-holding-heart ${flipped} ${hand}"></i>`;
-    break;
-    case 3:
-    string = `<i class="fas fa-2x fa-hand-holding-usd ${flipped} ${hand}"></i>`;
-    break;
-    case 4:
-    string = `<i class="fas fa-2x fa-hand-holding-water ${flipped} ${hand}"></i>`;
-    break;
-    case 5:
-    string = `<i class="fas fa-2x fa-hand-holding ${flipped} ${hand}"></i>`;
-    break;
-  }
-  $(`#${flash}`).hide();
-  $(`#${flash}`).html(`${string}`);
-  $(`#${flash}`).fadeIn('slow');
-}
-var blonkcount = 0;
-
-  var blonker = setInterval(function(){
-    blonkcount++;
-    if(blonkcount % 2 == 0){
-        handsBlink('left');
-    } else {
-        handsBlink('right');
-    }
-  }, 3000);
-
-var showsiteinfo = true;
-function togglesiteinfo() {
-  if(showsiteinfo == true) {
-    $('#settings-siteinfo').val('Hide');
-    $('.siteinfo').removeClass('hidden');
-    showsiteinfo == false;
-  } else if(showsiteinfo == false) {
-    $('#settings-siteinfo').val('Show');
-    $('.siteinfo').addClass('hidden');
-    showsiteinfo == true;
-  } else {
-    $('#settings-siteinfo').val('Hide');
-    $('.siteinfo').removeClass('hidden');
-    showsiteinfo = true;
-  }
-}
-
-
-function navbarBlitz(data) {
-  console.log(`navbarBlitz:`);
-  clearInterval(blonker);
-  var screenWidth = window.innerWidth;
-  if((screenWidth / $('.navbar').width()) < 3 ){
-    $('.navbar').css({"width":"20%"});
-    $('#thenavbarthing').css({"width":"10%"});
-    //$('li').animate({"margin-left":"3px"}, 900);
-    $('#arrowin').html('<i class="fas fa-chevron-right" title="Click here to Grow Menu"></i>');
-    $('#coloricon').addClass('hidden');
-    $("#acct").addClass('hidden');
-    $("#loans").addClass("hidden");
-    $("#lend").addClass("hidden");
-    $("#tools").addClass("hidden");
-    $("#faq").addClass("hidden");
-    $("#wallet").addClass("hidden");
-    $("#profile").addClass("hidden");
-    $("#futures").addClass("hidden");
-    $("#login").addClass('hidden');
-    $("#logout").addClass('hidden');
-    $("#bugs").addClass('hidden');
-    $("#loansmenu").addClass("hidden");
-    $("#joinmenu").addClass("hidden");
-    $("#profilemenu").addClass('hidden');
-    $("#futuresmenu").addClass('hidden');
-    $("#jumbotron").css({'height':`'${($("#jumbotron").height() + 5)}%'`});
-    return true;
-  } else if ((screenWidth / $('.navbar').width()) > 3 ) {
-    $('.navbar').css({"width":"99%"});
-    $('#thenavbarthing').css({"width":"50%"});
-    //$('li').animate({"margin-left":"40px"}, 900);
-    $('#arrowin').html('<i class="fas fa-chevron-left" title="Click here to Shrink Menu"></i>');
-    setTimeout(function(){
-      $('#coloricon').removeClass('hidden');
-      $("#acct").removeClass('hidden');
-      $("#loans").removeClass("hidden");
-      $("#lend").removeClass("hidden");
-      $("#tools").removeClass("hidden");
-      $("#faq").removeClass("hidden");
-      $("#wallet").removeClass("hidden");
-      $("#profile").removeClass("hidden");
-      $("#futures").removeClass("hidden");
-      //$("#login").addClass('hidden').fadein('fast');
-      $("#logout").removeClass('hidden');
-      $("#bugs").removeClass('hidden');
-      $("#loansmenu").removeClass("hidden");
-      $("#joinmenu").removeClass("hidden");
-      $("#profilemenu").removeClass('hidden');
-      $("#futuresmenu").removeClass('hidden');
-      $("#jumbotron").css({'height':`'${($("#jumbotron").height() - 5)}%'`});
-    }, 900)
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function toThree(n) {
-    var number = n.toString().substring(0, n.toString().indexOf(".") + 4);
-    parseFloat(number);
-    return number;
-}
-
+};//END
 
 function deposit(amount, type, memo){
   const op = ['transfer', {
@@ -972,7 +995,7 @@ function deposit(amount, type, memo){
       return console.log(result);
     }
   });
-}
+};//END
 
 function sendPopup(type, addess){
   var dep = window.prompt(`How Much ${type} do You Wish to Deposit?`, "");
@@ -986,9 +1009,7 @@ function sendPopup(type, addess){
   } else {
     deposit(dep, type, uAddress);
   }
-}
-
-
+};//END
 
 // time rewuired format: 'MM/DD/YYYY 0:0 AM'
 //CountDownTimer('02/19/2012 10:1 AM', 'countdown');
@@ -998,19 +1019,19 @@ function sendPopup(type, addess){
 
 function reloadPricePopup() {
   $('#alertPriceWrapper').html(`<iframe id="alertPriceIframe" onload="$('#alertpricepanel').hide();" src="https://www.worldcoinindex.com/widget/renderWidget?size=large&from=HIVE&to=usd&name=Hive&clearstyle=false"></iframe>`);
-};
+};//END
 
 function getUserProfile(user) {
   //showSuccess(`Fetching ${user}'s Profile'`);
   viewUserProfile(user);
   window.open(`https://peakd.com/@${user}`);
-}
+};//END
 
 
 function getUserBlog(user) {
   showSuccess(`Opening ${user}'s Blog on Peakd.com '`);
   window.open(`https://peakd.com/@${user}`);
-}
+};//END
 
 async function withdrawButton() {
   socket.emit('withdrawopen', {user: $('#usernamestore').val()}, function(err, data){
@@ -1030,7 +1051,7 @@ async function withdrawButton() {
       }
     }
   })
-}
+};//END
 
 /*
 function CountDownTimer(dt, id) {
@@ -1065,101 +1086,131 @@ function CountDownTimer(dt, id) {
 
 //========================================================================
 
-function minTwoDigits(n) {
-  return (n < 10 ? '0' : '') + n;
-}
 
-function getNumber(theNumber)
-{
-    if(theNumber > 0){
-        return "+" + theNumber;
-    }else{
-        return "&nbsp;" + theNumber;
-    }
-}
+//==================================================
+//--------------------------------------------------
+//     Loan Contracts & Borrowing
+//--------------------------------------------------
+function acceptContract(contractID) {
+  showSuccess(`Grabbing Contract #${contractID}`);
+  socket.emit('acceptloan', {loanId: contractID, token: token}, function(err, data){
 
-
-
-//END JS sound shit
-
-
-var showPopup = function(text, type){
-  var color;
-  var title;
-  if(type == 'error') {color = 'red'; title = "An Error has Occured!";}
-  if(type == 'success') {color = 'lawngreen'; title = "Important Information!";}
-  var loadingContent = `<center><h3 style="color:${color}">${title}</h3><b style="color:${color};">${text}</b><br><br><button id="popupClose" class="push_button4">Close</button></center>`;
-      var loadingContent = `${title}\n${text}`;
-      showErr(loadingContent);
-      //$("#jumbotron").html(loadingContent);
-      //$("#jumbotron").css({'height':'fit-content','width':'auto'});
-      //$("#jumbotron").center();
-      //$("#jumbotron").fadeIn('slow');
-}
-
-var flashsec = function(elements) {
-  $(elements).css({'color':'#CC0000 !important'});
-  $(elements).animate({'color':'#000000 !important'}, 300);
-  $(elements).css({'color':'#000000 !important'});
-
-};
-
-var flashwin = function(elements, ms) {
-  if(!ms) ms = 800;
-  $(elements).css({'color':'#00FF00 !important'});
-  $(elements).animate({'color':'#FFFFFF !important'}, ms);
-  $(elements).css({'color':'#FFFFFF !important'});
-
-};
-
-var flashlose = function(elements, ms) {
-  if(!ms) ms = 800;
-  $(elements).css({'color':'#CC0000 !important'});
-  $(elements).animate({'color':'#FFFFFF !important'}, ms);
-  $(elements).css({'color':'#FFFFFF !important'});
-
-};
-
-
-var updateQRCODE = function(v){
-    $('#qrcode').qrcode({
-		render: "table",
-        text	: v
-	});
-    $("#qrtext").text(v);
-};
-
-var floor = function(n, decimalPlaces){
-    var m = Math.pow(10,decimalPlaces);
-    return (Math.floor(n*m)/m).toFixed(decimalPlaces);
-};
-
-var ceil = function(n, decimalPlaces){
-    var m = Math.pow(10,decimalPlaces);
-    return (Math.ceil(n*m)/m).toFixed(decimalPlaces);
-};
-
-var round = function(n, decimalPlaces){
-    var m = Math.pow(10,decimalPlaces);
-    return (Math.round(n*m)/m).toFixed(decimalPlaces);
-};
-
-var getUserData = () => {
-  socket.emit('getuserdata', {data: true}, function(err, data){
-    if(err) {
-      console.log(err);
-    }
-    if(data) {
-      data = data.userdata
-      usersDataFetch = data;
-      $("#userhivebalance").html((data.hivebalance  / 1000).toFixed(3) + " <i class='fab fa-fw fa-hive hivered sexyblackoutline' style></i>");
-      //$("#userhbdbalance").html((data.hbdbalance  / 1000).toFixed(3) + " HBD");
-      console.log(usersData);
-      console.log(usersData);
-      showSuccess(`Fetched Account Data!`);
-    }
+      if(err) {
+        showPopup(err, 'error');
+        token = data.token;
+        console.log(err)
+        return showErr(err);
+      }
+      if(data) {
+        console.log(`acceptContract(contractID):`);
+        console.log(data);
+        token = data.token;
+        showAcctSurrenderPanel(data.username, data.loanData.loanId, data.limit, data.loanData, data.pgppublic);
+        return showSuccess(`Get Contract #${contractID}`);
+        //showErr(`ERROR: Cannot Complete Lending Contract Request!\nThis site is under construction and not yet fully operational!\n\nWith your current Hive Power you could borrow up to ${data.limit} HIVE!\n\nLooking forward to launch, hope to see you there!`);
+      }
   })
-}
+};//END acceptContract
+
+function cancelContract(contractID, seedID) {
+  if(debug) console.log(`cancelContract(${contractID}, ${seedID});`);
+  if(!contractID){
+    if(debug) console.log(`ERROR: Variable loanId is Undefined!`);
+    contractID = 'none';
+  }
+  if(!seedID){
+    if(debug) console.log(`ERROR: Variable seedID is Undefined!`);
+    seedID = 'none';
+  }
+  /*
+  if(state === undefined){
+    return showErr(`ERROR: Variable state is Undefined!`);
+  }
+  if(state == 'accepted') return showErr(`Cannot Cancel Active Contract!`);
+  if(state == 'finished') return showErr(`Cannot Cancel Finished Contract!`);
+  if(state == 'cancelled') return showErr(`Cannot Cancel Cancelled Contract!`);
+  if(state == 'deployed') showSuccess(`Attempting to Cancel Deployed Contract`);
+  */
+  socket.emit('cancelloan', {loanId: contractID, seedId: seedID, token: token}, function(err, data){
+      if(err) {
+        console.log(err)
+        showErr(err);
+        //showPopup(err, 'error');
+        token = data.token;
+        console.log(err)
+      }
+        console.log(data)
+        token = data.token;
+        showSuccess(`Attempting to Cancel Contract #${data.contractID}`);
+  })
+};//END cancelContract
+
+var processState = async(data, history) => {
+  console.log(`var processState = async(data, history)`);
+    console.log(`data:`);
+  console.log(data);
+    console.log(`history:`);
+  console.log(history);
+  if(!data) return false;
+  if(!history) history = false;
+  var loans = data;
+  var ourloans = [];
+ loans.map(function(key) {
+   if(key.borrower == uUsername && key.completed == 0 && key.active == 1){
+     if (key.cancelled !== -1) {
+         delete key.cancelled;
+     }
+     if (key.id !== -1) {
+         delete key.id;
+     }
+     if (key.active !== -1) {
+         delete key.active;
+     }
+     if (key.createdAt !== -1) {
+         delete key.createdAt;
+     }
+       ourloans.push(key);
+   } else {
+     if(history == false){
+       if(key.completed == 1) {
+        return delete key;
+       }
+       delete key.id;
+       delete key.userId;
+       delete key.txid;
+       delete key.endtxid;
+       delete key.collected;
+       delete key.nextcollect;
+       delete key.currentpayments;
+       delete key.totalpayments;
+       delete key.payments;
+       //delete key.createdAt;
+       delete key.updatedAt;
+       ourloans.push(key);
+     }
+      /*
+      delete key.createdAt;
+      delete key.nextcollect;
+            delete key.genesis;
+                  delete key.borrower;
+                        delete key.username;
+                        delete key.endblock;
+                                                delete key.endblocktxid;
+      delete key.fine;
+      delete key.deployfee;
+      delete key.cancelfee;
+      delete key.updatedAt;
+      delete key.txid;
+      */
+   }
+  });
+  /*
+  if(!data) {data = []};
+  if(!ourloans) {ourloans = []};
+  function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
+  */
+  return CreateTableFromJSON(ourloans, 'loans', 'loanChartHolder', 'loanMixedChartTable', 'loanMixedChartHead');
+};//END processState
 
 function loanCreateInterestWrangler(){
   if(!usersDataFetch.rank) return;
@@ -1205,7 +1256,7 @@ function loanCreateInterestWrangler(){
     }
   },666);
 
-}
+};//END loanCreateInterestWrangler
 
 function createMainLoanPreview() {
   var newAmount;
@@ -1288,7 +1339,7 @@ function createMainLoanPreview() {
   } else {
     //$('#loanCreateFeedback').html(`<center>Fill in Above Inputs</center>`);
   }
-}
+};//END createMainLoanPreview
 
 function createMainBorrowPreview() {
   var newAmount;
@@ -1372,8 +1423,7 @@ function createMainBorrowPreview() {
   } else {
     //$('#loanCreateFeedback').html(`<center>Fill in Above Inputs</center>`);
   }
-}
-
+};//END createMainBorrowPreview
 
 function createLoanPreview() {
   var newAmount;
@@ -1439,127 +1489,12 @@ function createLoanPreview() {
   } else {
     $('#createLoanPreview').html(`<center>Please enter valid amounts in the fields above to get a preview of the loan contract</center>`);
   }
-}
+};//END createLoanPreview
 
-function cancelContract(contractID, seedID) {
-  console.log(`cancelContract(${contractID}, ${seedID});`);
-  //console.log(`contractID`);
-  //console.log(contractID);
-  //console.log(`seedID`);
-  //console.log(seedID);
-  if(!contractID){
-    //console.log(`ERROR: Variable loanId is Undefined!`);
-    contractID = 'none';
-  }
-  if(!seedID){
-    //console.log(`ERROR: Variable seedID is Undefined!`);
-    seedID = 'none';
-  }
-  /*
-  if(state === undefined){
-    return showErr(`ERROR: Variable state is Undefined!`);
-  }
-  if(state == 'accepted') return showErr(`Cannot Cancel Active Contract!`);
-  if(state == 'finished') return showErr(`Cannot Cancel Finished Contract!`);
-  if(state == 'cancelled') return showErr(`Cannot Cancel Cancelled Contract!`);
-  if(state == 'deployed') showSuccess(`Attempting to Cancel Deployed Contract`);
-  */
-  socket.emit('cancelloan', {loanId: contractID, seedId: seedID, token: token}, function(err, data){
-      if(err) {
-        console.log(err)
-        showErr(err);
-        //showPopup(err, 'error');
-        token = data.token;
-        console.log(err)
-      }
-        console.log(data)
-        token = data.token;
-        showSuccess(`Attempting to Cancel Contract #${data.contractID}`);
-  })
-}
-
-
-function simpleJSONstringify(obj) {
-    var prop, str, val,
-        isArray = obj instanceof Array;
-
-    if (typeof obj !== "object") return false;
-
-    str = isArray ? "[" : "{";
-
-    function quote(str) {
-        if (typeof str !== "string") str = str.toString();
-        return str.match(/^\".*\"$/) ? str : '"' + str.replace(/"/g, '\\"') + '"'
-    }
-
-    for (prop in obj) {
-        if (!isArray) {
-            // quote property
-            str += quote(prop) + ": ";
-        }
-
-        // quote value
-        val = obj[prop];
-        str += typeof val === "object" ? simpleJSONstringify(val) : quote(val);
-        str += ", ";
-    }
-
-    // Remove last colon, close bracket
-    str = str.substr(0, str.length - 2)  + ( isArray ? "]" : "}" );
-
-    return str;
-}
-
-function acceptContract(contractID) {
-  showSuccess(`Grabbing Contract #${contractID}`);
-  socket.emit('acceptloan', {loanId: contractID, token: token}, function(err, data){
-
-      if(err) {
-        showPopup(err, 'error');
-        token = data.token;
-        console.log(err)
-        return showErr(err);
-      }
-      if(data) {
-        console.log(`acceptContract(contractID):`);
-        console.log(data);
-        token = data.token;
-        showAcctSurrenderPanel(data.username, data.loanData.loanId, data.limit, data.loanData, data.pgppublic);
-        return showSuccess(`Get Contract #${contractID}`);
-        //showErr(`ERROR: Cannot Complete Lending Contract Request!\nThis site is under construction and not yet fully operational!\n\nWith your current Hive Power you could borrow up to ${data.limit} HIVE!\n\nLooking forward to launch, hope to see you there!`);
-      }
-  })
-}
-
-var theDATA = siteAudit;
-var theWALLET;
-var theWDFEES;
-var newUpdateDate;
-var siteAccts;
-var siteAcctsActive;
-var siteAcctsDormant;
-var siteAcctsOwned;
-var siteLoans;
-var siteLoansArray;
-var usersBal = 0;
-var siteActiveLoans = 0;
-var siteActiveLends = 0;
-var siteActive = 0;
-var siteAvailable = 0;
-var siteCompleted = 0;
-var siteCancelled = 0;
-var siteTotalActive = 0;
-var siteTotalAllTime = 0;
-var siteTotalCollected = 0;
-var siteDeployFee = 0;
-var siteCancelFee = 0;
-var siteFineFee = 0;
-var siteCommissionFee = 0;
-var siteTotalFee = 0;
-var hotWalletBalance = 0;
-var coldWalletBalance = 0;
-var totalCustodial = 0;
-
+//==================================================
+//--------------------------------------------------
+//     Audit & Security
+//--------------------------------------------------
 function siteAuditData(data) {
   console.log(`siteAuditData Fired!`);
   if(data) console.log(data);
@@ -1720,17 +1655,23 @@ function siteAuditData(data) {
       $('#audit-createfee').val((siteDeployFee / 1000).toFixed(3));
       $('#audit-interestfee').val((siteCommissionFee / 1000).toFixed(3));
       $('#audit-cancelfee').val((siteCancelFee / 1000).toFixed(3));
-      $('#audit-withdrawfee').val((theWDFEES[0] / 1000).toFixed(3));
+      if(typeof theWDFEES != null) {
+        console.log(`theWDFEES`);
+        console.log(theWDFEES);
+        //$('#audit-withdrawfee').val((theWDFEES[0] / 1000).toFixed(3));
+      }
       $('#audit-finesfee').val((siteFineFee / 1000).toFixed(3));
       $('#audit-totalfee').val((siteTotalFee / 1000).toFixed(3));
 
     } catch(e) {
-      showErr(e);
+      console.log(`siteAudit ERROR:`);
+      console.log(e);
+      //showErr(e);
     }
   } else {
     console.log(`siteAudit Data Undefined!`);
   }
-}
+};//END siteAuditData
 
 function fetchAudit(data) {
   socket.emit('loadaudit', {token: token}, function(err, data){
@@ -1743,7 +1684,41 @@ function fetchAudit(data) {
       siteAuditData();
     }
   });
-}
+};//END fetchAudit
+
+async function payContract(contractID) {
+  socket.emit('payLoanIdDirect', {
+      loanId: contractID,
+      token: token
+  }, await function(err, data) {
+    if(err){
+       console.log(err);
+       showErr(err);
+    }
+    if(data){
+      console.log(data);
+      showRepayWindow(data.loandata);
+    }
+  })
+};//END payContract
+
+async function payloan(user, contractID, sendamount) {
+  socket.emit('confirmpayLoanIdDirect', {
+    username: user,
+    loanId: contractID,
+    amount: sendamount,
+    token: token}, await function(err, data) {
+      if(err){
+        showErr(err);
+        console.log(err);
+      }
+      if(data){
+        showSuccess(data);
+        console.log(data);
+      }
+    });
+
+};//END payloan
 
 function infoContract(data) {
     data = JSON.parse(data);
@@ -1784,7 +1759,7 @@ function infoContract(data) {
     `<td><code>Duration</code><br>${data.days} days</td><td><code>Borrower</code><br>${data.borrower}</td><td><code>Payments</code><br>${data.currentpayments} / ${data.totalpayments} <i class="far fa-fw fa-question-circle" title="Payment Amounts of ${(paymentSum / 1000).toFixed(3)} HIVE Weekly"></i></td><td>${data.active}</td>` +
     `</tr></tbody></table>`; //<td><code>Completed</code><br>${data.completed}</td><td><code>Created</code><br>${date}</td>
       $('#loadloaninfo').html(`${hyperdatatable}`);
-}
+};//END infoContract
 
 function createNewLendingContract(amount, days, fee, borrower) {
   if(!amount && typeof amount != 'number' || amount < 0) return showErr('Amount Variable Undefined, Invalid or a Non-Number Type');
@@ -1817,7 +1792,7 @@ function createNewLendingContract(amount, days, fee, borrower) {
       $('#createLoanWarning').val(`Deploying Lending Contract`);
     }
   });
-}
+};//END createNewLendingContract
 
 function finalizeLoan(contractID, pgpmessage){
   socket.emit('confirmloan', {loanId: contractID, pgp: pgpmessage, token: token}, function(err, data){
@@ -1833,57 +1808,17 @@ function finalizeLoan(contractID, pgpmessage){
         showSuccess(`Contract #${contractID.slice(0, 10)} Accepted!`);
       }
   })
-}
+};//END finalizeLoan
 
 
 
-async function encrypt(contractID, pgp){
-console.log(`function encrypt(${contractID}, ${pgp})`);
-  $("#surrenderKeysTable").hide();
-  $("#afterSurrenderButtonClick").removeClass('hidden');
-  $("#afterSurrenderButtonClick").text(`Awaiting Account Key Manager Response...`)
-  const { data: encrypted } = await openpgp.encrypt({
-      message: openpgp.message.fromText(`[{"${uUsername}":{"passdata":"${$('#masterAcctPass').val()}"}}]`),                 // input as Message object
-      publicKeys: (await openpgp.key.readArmored(pgp)).keys});
-  return finalizeLoan(`${contractID}`, `${encrypted}`);
-}
 
-async function payContract(contractID) {
-  socket.emit('payLoanIdDirect', {
-      loanId: contractID,
-      token: token
-  }, await function(err, data) {
-    if(err){
-       console.log(err);
-       showErr(err);
-    }
-    if(data){
-      console.log(data);
-      showRepayWindow(data.loandata);
-    }
-  })
-}
 
-async function payloan(user, contractID, sendamount) {
-  socket.emit('confirmpayLoanIdDirect', {
-    username: user,
-    loanId: contractID,
-    amount: sendamount,
-    token: token}, await function(err, data) {
-      if(err){
-        showErr(err);
-        console.log(err);
-      }
-      if(data){
-        showSuccess(data);
-        console.log(data);
-      }
-    });
-}//END payloan
-
-/** CHAT **/
-
-function writeBufferToChatBox(message){
+//==================================================
+//--------------------------------------------------
+//     Chat & Trollbox
+//--------------------------------------------------
+function writeBufferToChatBox(message) {
     if( $.inArray(message.user, banlist) != -1){
        showErr("You're Currently Banned From Chat... Please Contact KLYE to Appeal Your Ban!");
     } else {
@@ -1892,12 +1827,12 @@ function writeBufferToChatBox(message){
         scrollToTop($("#trollbox"));
       });
     }
-} // END writeBufferToChatBox
+}; // END writeBufferToChatBox
 
-function writeToChatBox(message){
+function writeToChatBox(message) {
     formatChatMessage(message, false);
     scrollToTop($("#trollbox"));
-}//END writeToChatBox
+};//END writeToChatBox
 
 var formatChatMessage = function(message, prepend){
     var date = new Date(message.createdAt);
@@ -1936,40 +1871,40 @@ var formatChatMessage = function(message, prepend){
     }
 
     scrollToTop($("#trollbox"));
-}
+};//END formatChatMessage
 
 var alertChatMessage = function(message) {
     var date = message.date
     $("#trollbox").append('<div class="chatList"><span class="chatTime"><a href="#" title="' + date + '"><i class="far fa-clock" style="color:grey; text-decoration: none !important;"></i></a></span> <span class="chatAlert sexyoutline" style="color:lightblue;" title="System"><i class="fas fa-fw fa-robot"></i></span> <span class="pchat" style="color: white"></span></div>'); //<b>System</b>
     $(".pchat").eq(-1).text(message.message);
     scrollToTop($("#trollbox"));
-};
+};//END
 
 var contractChatMessage = function(message) {
     var date = message.date
     $("#trollbox").append('<div class="chatList"><span class="chatTime"><a href="#" title="' + date + '"><i class="far fa-clock" style="color:grey; text-decoration: none !important;"></i></a></span> <span class="chatAlert sexyoutline" style="color:grey;" title="System"><i class="fas fa-fw fa-robot"></i></span> <span class="pchat" style="color: white"></span></div>'); //<b>System</b>
     $(".pchat").eq(-1).text(message.message);
     scrollToTop($("#trollbox"));
-};
+};//END
 
 var enterChatMessage = function(message) {
     var date = message.date
     $("#trollbox").append('<div class="chatList"><span class="chatTime"><a href="#" title="' + date + '"><i class="far fa-clock" style="color:grey; text-decoration: none !important;"></i></a></span> <span class="chatAlert sexyoutline" style="color:grey;" title="System"><i class="fas fa-fw fa-robot"></i></span> <span class="pchat" style="color: white"></span></div>'); //<b>System</b>
     $(".pchat").eq(-1).text(message.message);
     scrollToTop($("#trollbox"));
-};
+};//END
 
 var leaveChatMessage = function(message) {
     var date = message.date
     $("#trollbox").append('<div class="chatList"><span class="chatTime"><a href="#" title="' + date + '"><i class="far fa-clock" style="color:grey; text-decoration: none !important;"></i></a></span> <span class="chatAlert sexyoutline" style="color:grey;" title="System"><i class="fas fa-fw fa-robot"></i></span><span class="pchat" style="color: white"></span></div>'); //<b>System</b>
     $(".pchat").eq(-1).text(message.message);
     scrollToTop($("#trollbox"));
-};
+};//END
 
 var scrollToTop=function(el){
     var height = el[0].scrollHeight;
     el.scrollTop(height);
-};
+};//END
 
 var limitTrollBox =function(){
     var msgs = document.querySelectorAll('#trollbox li');
@@ -1977,13 +1912,7 @@ var limitTrollBox =function(){
     for(var i=1; i<msgs.length-100; i++) {
         msgs[i].parentNode.removeChild(msgs[i]);
     }
-};
-
-async function splitOffVests(a){
-  if(a){
-    return parseFloat(a.split(' ')[0]);
-  }
-}
+};//END
 
 var getHivePower = async(user) => {
   if(!user) return "No User Specified";
@@ -2000,7 +1929,7 @@ var getHivePower = async(user) => {
     console.log(`${user} - ${hiveVested} HP > ${loanMax} HIVE Credit`);
     var hpdata = JSON.stringify({hp: hiveVested, credit: loanMax});
     return hpdata;
-}
+};//END
 
 var getHiveDelegations = async(user) => {
   var vestsDelegated = 0;
@@ -2053,7 +1982,7 @@ function colorChange(){
     $('div.navbar').css({'box-shadow':'0 1px 0 rgb(255 255 255 / 25%), 0 1px 0 rgb(255 255 255 / 25%) inset, 0 0 0 rgb(0 0 0 / 50%) inset, 0 1.25rem 0 rgb(255 255 255 / 8%) inset, 0 -1.25rem 1.25rem rgb(0 0 0 / 30%) inset, 0 1.25rem 1.25rem rgb(255 255 255 / 10%) inset !important','border-bottom':'3px groove #7c7c7c !important', 'border-right':'3px groove #6d6d6d !important', 'background-color':'rgba(0,0,0,0.7)'});
     $('footer').css({'box-shadow':'0 1px 0 rgb(255 255 255 / 25%), 0 1px 0 rgb(255 255 255 / 25%) inset, 0 0 0 rgb(0 0 0 / 50%) inset, 0 1.25rem 0 rgb(255 255 255 / 8%) inset, 0 -1.25rem 1.25rem rgb(0 0 0 / 30%) inset, 0 1.25rem 1.25rem rgb(255 255 255 / 10%) inset, #292929 0px 20px 20px 20px !important','border-top':'3px groove #7c7c7c !important', 'background-color':'rgba(0,0,0,0.7)'});
   }
-}
+};//END
 
 var ol;
 $('input#betapass').keyup(function(e){
@@ -2064,7 +1993,7 @@ $('input#betapass').keyup(function(e){
   } else {
     flashlose($("input#betapass"));
   }
-});
+});//END
 
 var cbl;
 function checkBetaPass(){
@@ -2128,7 +2057,7 @@ function checkBetaPass(){
     }
     //flashlose($("input#betapass"));
   }
-};
+};//END
 
 var submitBetaPass = async(p) => {
   if(!p){
@@ -2152,17 +2081,20 @@ var submitBetaPass = async(p) => {
     $("#betalocklogo").html(`<i class="fas fa-unlock" style="color:lawngreen;"></i>`);
     $('input#betapass').html(`ACCEPTED!`);
     flashwin($('input#betapass'));
-    console.log(`rep:`);
-    console.log(rep);
+    if(debug){
+      console.log(`rep:`);
+      console.log(rep);
+    }
     betaPassChecked = rep.passed;
     loginContent = rep.data;
     showLogin();
   });
-};
+};//END
+
 
 function saveSettings() {
   showSuccess(`Saving Settings to Account`);
-}
+};//END
 
 let lastdotdotdotcontent = [];
 
@@ -2170,7 +2102,7 @@ function dotdotdotmaker(e, o){
   if(!e) return showErr(`function dotdotdotmaker() has no Target!`);
   if(o) lastdotdotdotcontent.push(o);
   $(e).html(`<div class="preloader js-preloader flex-center"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`);
-}
+};//END
 
 function dotdotdotreset(e, o){
   if(!e) return showErr(`function dotdotdotreset() has no Target!`);
@@ -2182,7 +2114,71 @@ function dotdotdotreset(e, o){
   } else {
     $(e).html(o);
   }
+};//END
+
+let hasUserCookie;
+let hasUserAccept;
+
+function cookieBake(u, a, d) {
+  if(!u || !a) return showErr(`Error Saving Cookie!`);
+  console.log(`cookieBake(${u}, ${a})`);
+  const p = new Date();
+  p.setTime(p.getTime() + (d*24*60*60*1000));
+  let expires = "expires="+ p.toUTCString();
+  document.cookie = "username=" + u + "; disclaimer=" + a + "; expires=" + expires + "; path=/";
+};//END cookieBake
+
+function cookieNuke() {
+  document.cookie = "username=; disclaimer=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+};//END cookieNuke
+
+function cookieCheck(){
+  if(document.cookie){
+    console.log(`cookieCheck Found!`);
+    console.log(document.cookie);
+    hasUserCookie = cookieGetVar('username'); //$('#disclaimerUsername').val()
+    hasUserAccept = cookieGetVar('disclaimer');
+    console.log(`hasUserAccept:`);
+    console.log(hasUserAccept);
+    if(hasUserCookie != false){
+      console.log(`hasUserCookie:`);
+      console.log(hasUserCookie);
+      if(hasUserCookie && hasUserAccept == true){
+        disclaimerAgree == true;
+      }
+    } else {
+          console.log(`cookieCheck does not include user! Adding now!`);
+          console.log(`hasUserCookie:`);
+          console.log(hasUserCookie);
+          console.log(`hasUserAccept:`);
+          console.log(hasUserAccept);
+          cookieBake($('#disclaimerUsername').val(), true, 7);
+    }
+  } else {
+    console.log(`cookieCheck Missing! Creating Now!`);
+      console.log(`hasUserCookie:`);
+      console.log(hasUserCookie);
+      cookieBake($('#disclaimerUsername').val(), true, 7);
+  }
+};//END cookieCheck
+
+function cookieGetVar(cname){
+  console.log(`cookieGetVar(${cname})`);
+  let name = cname + "=";
+ let decodedCookie = decodeURIComponent(document.cookie);
+  let ca = decodedCookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return false;
 };
+
 
 function disclaimersign(){
   if(typeof $('#disclaimerUsername').val() == 'string' && $('#disclaimerUsername').val().length <= 16 && $('#disclaimerUsername').val().length >= 3){
@@ -2191,7 +2187,7 @@ function disclaimersign(){
     //flashlose();
     showErr('Something Went Wrong Signing Disclaimer!');
   };
-}
+};//END
 
 //generate a random number between 1 and 1,000,000
 function randomidrng() {
@@ -2199,25 +2195,8 @@ function randomidrng() {
   return x;
 };//END randomidrng
 
-let jsonshit;
-
-
-let customJsonOp;
-
 function publicPostAcceptDisclaimer(u, j) {
   if(!u)return showErr(`Invalid Username Supplied!`);
-
-/*
-  customJsonOp = [{
-        u,
-        'beta.hive.loans',
-        ['Posting'],
-        JSON.stringify([jsonshit]),
-        'Sign and Broadcast a Custom JSON from your Account to Leave Record of Accepting Hive.Loans Beta Test Disclaimer on HIVE'
-  }];
-*/
-//u, 'beta.hive.loans', ['Posting'], jsonshit, 'Sign and Broadcast a Custom JSON from your Account to Leave Record of Accepting Hive.Loans Beta Test Disclaimer on HIVE'
-
     hive_keychain.requestCustomJson(
             $('#disclaimerUsername').val(),
             'hive.loans.beta.v0.1.1',
@@ -2232,6 +2211,7 @@ function publicPostAcceptDisclaimer(u, j) {
         console.log(response.success);
         if(response.success == true){
           $('#sitealertpanel').fadeOut();
+          cookieBake(response.data.username, response.success, 7);
           window.localStorage.setItem("disclaimeraccept", true);
           showLogin();
           $('#usernameinput').val(response.data.username);
@@ -2244,68 +2224,12 @@ function publicPostAcceptDisclaimer(u, j) {
     }, null);
 };//END publicPostAcceptDisclaimer
 
-let hasUserCookie;
-let hasUserAccept;
-function cookieCheck(){
-  if(document.cookie){
-    console.log(`cookieCheck Found!`);
-    console.log(document.cookie);
-    hasUserCookie = cookieGetVar('username'); //$('#disclaimerUsername').val()
-    hasUserAccept = cookieGetVar('disclaimer');
-    console.log(`hasUserAccept:`);
-    console.log(hasUserAccept);
-    if(hasUserCookie != false){
-      console.log(`hasUserCookie:`);
-      console.log(hasUserCookie);
-    } else {
-          console.log(`cookieCheck does not include user! Adding now!`);
-          console.log(`hasUserCookie:`);
-          console.log(hasUserCookie);
-          cookieBake($('#disclaimerUsername').val(), true);
-    }
-  } else {
-    console.log(`cookieCheck Missing! Creating Now!`);
-      console.log(`hasUserCookie:`);
-      console.log(hasUserCookie);
-      cookieBake($('#disclaimerUsername').val(), true);
-  }
-};//END cookieCheck
-
-function cookieGetVar(cname){
-  console.log(`cookieGetVar(${cname})`);
-  let name = cname + "=";
-  let ca = document.cookie.split(';');
-  for(let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) == ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) == 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return false;
-};
-
-
-function cookieBake(u, a) {
-  if(!u || !a) return showErr(`Error Saving Cookie!`);
-  console.log(`cookieBake(${u})`);
-  const p = new Date();
-  p.setTime(p.getTime() + (p*24*60*60*1000));
-  let expires = "expires="+ p.toUTCString();
-  let cookiesave = `username=${u};disclaimer=${a};expires=${expires};path=/;`;
-  document.cookie = cookiesave;
-};//END cookieBake
-
-
 function disclaimerOK(){
   if(document.getElementById('disclaimerCheck').checked){
     if(typeof $('#disclaimerUsername').val() == 'string' && $('#disclaimerUsername').val().length <= 16 && $('#disclaimerUsername').val().length >= 3){
       disclaimerAgree = true;
       //localStorage.setItem("disclaimertick", true)
       showSuccess('Thank You for Agreeing! Welcome to Beta Testing!');
-      cookieCheck();
       publicPostAcceptDisclaimer($('#disclaimerUsername').val(), jsonshit);
       $('#jumbotron').removeClass('hidden');
       $('#usernameinput').val($('#disclaimerUsername').val());
@@ -2330,10 +2254,12 @@ function showLogin() {
   //}
   $("#sitealertpanel").fadeOut('fast');
   $("#sitealertpanel").addClass('hidden');
+
   if(betaPassChecked !== true) return showBetaPass();
   if(window.localStorage.getItem("disclaimeraccept") && window.localStorage.getItem("disclaimeraccept") == true) {
     disclaimerAgree = true;
   }
+  cookieCheck();
   if(disclaimerAgree !== true){
     $('#sitealertpanel').css({'top':'15%','height':'79vh !important','width':'22%'});
     return showDisclaimer();
@@ -2518,35 +2444,83 @@ function xmrFetchStats(u){
   });
 }
 
-function isNumberKey(evt) {
-    var charCode = (evt.which) ? evt.which : evt.keyCode;
-    if (charCode != 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
-        showErr("Numbers & Decimals Only!");
-        return false;
+
+
+
+//--------------------------------------------
+//      Wallet & Deposit & Withdraw
+//--------------------------------------------
+var getUserData = () => {
+  socket.emit('getuserdata', {data: true}, function(err, data){
+    if(err) {
+      console.log(err);
     }
-    return true;
-}
-
-function isNearSeven(val) {
-  if(val % 7){
-    return Math.round(val / 7);
-  } else {
-    console.log(`not multiple of 7`);
-  }
-}
-
-function between(value, start, end){
-  if(value < start){
-    return 10;
-  } else if (value > end){
-    return 30;
-  }
-}
+    if(data) {
+      data = data.userdata
+      usersDataFetch = data;
+      $("#userhivebalance").html((data.hivebalance  / 1000).toFixed(3) + " <i class='fab fa-fw fa-hive hivered sexyblackoutline' style></i>");
+      //$("#userhbdbalance").html((data.hbdbalance  / 1000).toFixed(3) + " HBD");
+      console.log(`getUserData:`);
+      console.log(usersData);
+      showSuccess(`Fetched Account Data!`);
+    }
+  })
+};//END getUserData
 
 function loanWalletLink() {
   showWallet(uUsername);
   //showLeftSideWallet();
 };//END loanWalletLink
+
+function wdnow(coin, fee, security) {
+      console.log('withdrawit!');
+      showSuccess('Processing Withdraw - Please Wait!');
+      $('#sending').html('<i style="color:grey" class="fa fa-pulsener fa-pulse fa-2x fa-fw"></i>');
+      if(uUsername != 'klye' || $('#withdrawAmount').val() < 1){
+        return showErr(`Must Withdraw Atleast 1 ${coin}`);
+      }
+      socket.emit("withdraw", {
+          amount: $('#withdrawInteger').val(),
+          account: $('#withdrawAcct').val(),
+          memo: $('#withdrawMemo').val(),
+          type: coin,
+          fee: fee,
+          security: security,
+          token: token
+      }, function(err, cb) {
+          if (err) {
+              $('#sending').html(`<br><b style='color:red;'>${err}</b>`);
+              $('#withdrawit').html(`ENTER AMOUNT`);
+              return showErr(`${err}`);
+          }
+          if (cb) {
+              console.log(cb);
+              token = cb.token;
+              showSuccess('Withdrawal Success!');
+              showWallet(uUsername);
+              bootbox.hideAll();
+          }
+      })
+  };//END wdnow
+
+function calctotal(fee, coin){
+    var thetotal;
+    var thisval = parseFloat($("#withdrawInteger").val());
+    var balance = parseFloat($("#tipbalance").val());
+    $("#tipbalance").attr('title', `Click to Withdraw All Your ${coin.toUpperCase()}`);
+    thetotal = thisval - fee;
+    if (thetotal <= balance) {
+        flashwin($("#wdtotal"))
+        $("#wdtotal").html(`You'll receive ${thetotal.toFixed(3)} ${coin}`);
+        $("#wdbuttontext").html(`WITHDRAW <span class="wdtype">HIVE</span> <span id="wdlogo"><i class="fab fa-fw fa-hive" style="color:#E31337;"></i></span>`);
+        $('#withdrawit').attr("disabled", false);
+    } else {
+        flashlose($("#wdtotal"))
+        $("#wdtotal").html(`Insufficient <span class="wdtype">HIVE</span> <span id="wdlogo"><i class="fab fa-fw fa-hive" style="color:#E31337;"></i></span> Balance`);
+        $("#wdbuttontext").html(`Error`);
+        $('#withdrawit').attr("disabled", true);
+    }
+};//END calctotal
 
 /*
 $('input#newLendFee.casperInput').on('onkeyup', function () {
@@ -2559,9 +2533,10 @@ $('input#newLendFee.casperInput').on('onkeyup', function () {
   },500);
 });
 */
+
 /*EDIT BELOW TO ADD NEW COIN*/
 function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
-  console.log(`CreateTableFromJSON(data, name: ${name}, elementid: ${elementid}, tablename: ${tablename}, tableheadname: ${tableheadname})`);
+  if(debug == true) console.log(`CreateTableFromJSON(data, name: ${name}, elementid: ${elementid}, tablename: ${tablename}, tableheadname: ${tableheadname})`);
     if (data == undefined) {
         return showErr("Something fucked up!");
     }
@@ -2637,8 +2612,24 @@ function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
               case "totalpayments":
               $(th).text("Payments");
               break;
+              case "close":
+              $(th).text("");
+              break;
               case "id":
-              $(th).text("#");
+                switch(tablename){
+                  case 'opencfdtable':
+                  $(th).text("Contract #");
+                  break;
+                  default:
+                  $(th).text("#");
+                  break;
+                }
+              break;
+              case "openPrice":
+              $(th).text("Price");
+              break;
+              case "current":
+              $(th).text("Position Value");
               break;
               case "seedId":
               $(th).text("Genesis ID");
@@ -2659,6 +2650,9 @@ function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
                 switch(tablename){
                   case "withdrawhistory":
                   $(th).text("Sender");
+                  break;
+                  case "opencfdtable":
+                  $(th).text("User");
                   break;
                   default:
                   $(th).text("Lender");
@@ -2724,7 +2718,7 @@ function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
             var wew = [];
             wew.push(JSON.stringify(data[i]));
 
-            if(name !== "withdrawhistory" && name !== 'loans') {
+            if(name !== "withdrawhistory" && name !== 'loans' && name !== "opencfds") {
               tr.setAttribute("onclick", "infoContract(" + JSON.stringify(wew) + ");")
               tr.setAttribute("ondblclick", "infoContract(" + JSON.stringify(wew) + "); $(\".iw-contextMenu\").contextMenu(\"destroy\"); $(\".iw-cm-menu\").contextMenu(\"destroy\"); contractMenu($(this), \"" + wew[0][i].loanId + "\", " + JSON.stringify(wew) + ");");  /*`#row-${[i]}`*/                         //acceptContract('${thisID}');  //$(this).css({'background':'rgba(255,255,255,0.2)','color':'lightgreen'}).delay(50).animate({'background':'rgba(255,255,255,0.1)','color':'white'}, 150);";
             }
@@ -2989,6 +2983,69 @@ function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
                     }
                 }//END   if (name == 'loans')
 
+              if (name == "opencfds") {
+
+                if (col[j] == "amount") {
+                  data[i][col[j]] = `${((data[i][col[j]]) / 1000).toFixed(3)} <i class="fab fa-hive" style="color:#E31337;"></i>`;
+                };
+                if (col[j] == "id") {
+                  //delete col;
+                };
+                if (col[j] == "liquidation") {
+                  var color;
+                  if(parseFloat(data[i][col[j]]) < 0){
+                    color = 'red';
+                  } else {
+                    color = 'lawngreen';
+                  }
+                  data[i][col[j]] = `<code>${parseFloat(data[i][col[j]]).toFixed(6)}<i class="fas fa-dollar-sign" style="color:#00FF00;"></i></code>`;
+                };
+                if (col[j] == "profit") {
+                  var color;
+                  if(parseFloat(data[i][col[j]]) < 0){
+                    color = 'red';
+                  } else {
+                    color = 'lawngreen';
+                  }
+                  data[i][col[j]] = `<span style="color:${color};">${parseFloat(data[i][col[j]]/10000000).toFixed(6)} <i class="fab fa-hive" style="color:#E31337;"></span>`;
+                };
+                if (col[j] == "margin") {
+                  data[i][col[j]] =`${data[i][col[j]]}x`;
+                };
+                if (col[j] == "orderId") {
+                  //delete col;
+                }
+
+                if (col[j] == "type") {
+                  if (data[i][col[j]] == "long") {
+                      data[i][col[j]] = '<i style="color:lawngreen;" title="Long" class="fas fa-level-up-alt"></i>';
+                  }
+                  if (data[i][col[j]] == "short") {
+                      data[i][col[j]] = '<i style="color:red;" title="Short" class="fas fa-level-down-alt"></i>';
+                  }
+                }
+                if(col[j] == 'username') {
+                  delete col;
+                  delete col[j];
+                }
+                if (col[j] == "openPrice") {
+                  data[i][col[j]] = `<code>${parseFloat(data[i][col[j]]).toFixed(6)}<i class="fas fa-dollar-sign" style="color:#00FF00;"></i></code>`;
+                }
+                if (col[j] == "stoploss") {
+
+                }
+                if (col[j] == "current") {
+                  var color;
+                  if(parseFloat(data[i][col[j]] / 1000) < parseFloat(data[i]['amount']) ){
+                    color = 'red';
+                  } else {
+                    color = 'lawngreen';
+                  }
+                  data[i][col[j]] = `<span style="color:${color}">${toThree(parseFloat(data[i][col[j]] / 1000))} <i class="fab fa-hive" style="color:#E31337;"></i></span>`;
+                }
+
+              }
+
                 if (name == "loadloans") {
                     if (col[j] == "loanId") {
                         thisID = data[i][col[j]];
@@ -3004,6 +3061,7 @@ function CreateTableFromJSON(data, name, elementid, tablename, tableheadname) {
                             data[i][col[j]] = "<code>" + newtx + "</code>";
                         }
                     }
+
                     if (col[j] == "active") {
                       if(data[i][col[j]] == 0){//if active == false
                         if(data[i]["completed"] === 1){

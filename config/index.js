@@ -7,6 +7,7 @@ dotenv.config();
       debug: process.env.DEBUG,
       verbose: process.env.VERBOSE,
       dbSetup: process.env.DB_SETUP,
+      dbSync: process.env.DB_SYNC,
       mariaDb: process.env.MARIADB,
       dbPort: process.env.DB_PORT,
       dbUser: process.env.USER,

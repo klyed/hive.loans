@@ -32,7 +32,7 @@ function leaseCount() {
   LeaseData.count().then(c => {
     return c;
   })
-}
+};
 
 function calculateAPR(duration, payment, amount) {
   if(!duration) return log(`calculateAPR: ERROR: duration is missing!`);

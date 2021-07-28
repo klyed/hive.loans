@@ -13,6 +13,13 @@ var options = {
 };
 var debug = false;
 
+var blonkcount = 0;
+
+var showsiteinfo = true;
+
+let jsonshit;
+let customJsonOp;
+
 var skcLinkData;
 
 let usersDataFetch;
@@ -82,6 +89,49 @@ var old_percent_change_7d = 0;
 var old_percent_change_30d = 0;
 
 var blockssynced = '';
+
+
+var theDATA = siteAudit;
+var theWALLET;
+var theWDFEES;
+var newUpdateDate;
+var siteAccts;
+var siteAcctsActive;
+var siteAcctsDormant;
+var siteAcctsOwned;
+var siteLoans;
+var siteLoansArray;
+var usersBal = 0;
+var siteActiveLoans = 0;
+var siteActiveLends = 0;
+var siteActive = 0;
+var siteAvailable = 0;
+var siteCompleted = 0;
+var siteCancelled = 0;
+var siteTotalActive = 0;
+var siteTotalAllTime = 0;
+var siteTotalCollected = 0;
+var siteDeployFee = 0;
+var siteCancelFee = 0;
+var siteFineFee = 0;
+var siteCommissionFee = 0;
+var siteTotalFee = 0;
+var hotWalletBalance = 0;
+var coldWalletBalance = 0;
+var totalCustodial = 0;
+
+var dl;
+var cl;
+
+var banlist = [];
+
+var scrollspeed = 5;
+var makeleasetoggle = false
+var shmdftoggle = false
+
+let navList = [];
+let navIndex = 0;
+let ourIndex = 0;
 
 //const barSeries = loanchart.addBarSeries();
 

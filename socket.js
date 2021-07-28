@@ -1,4 +1,9 @@
 const { config } = require(__dirname + "/config/index.js");
+let { chatHist, canUserTransact, usersInvest, userSockets, socketList, userRawSockets, socketListKeys, usersHivePower, auditArray, auditWalletArray, pingArray,
+   founderslist, backerslist, hlspreholderlist, enableLenderUSDcost, withdrawUSDcost, contractDeployUSDcost, cancelContractFeePercent, userTokens, hotWalletBalance,
+   coldWalletBalance, hotWalletData, coldWalletData, maxWin, bankRoll, greedBR, siteProfit, siteTake, siteEarnings, newCurrentBlock, synced, blockNum, btcprice, hivebtcprice,
+   hiveprice, hbdbtcprice, hbdprice, hivePriceData, priceSourceNameArray, priceSourceArray, priceSourceIndex, priceSourceActive, oldprice, lastprice, spotprice, spreadpercent,
+   longHIVEprice, shortHIVEprice, priceNonce, cgData, bncData, cmcData, wcData, pricecheckinit, pricechecklast, labelstack, datas, loginContent} = require("./vars.js");
 let debug = config.debug;
 let verbose = config.verbose;
 const owner = config.owner;
@@ -50,8 +55,6 @@ log("TICKER: Initializing CoinMarketCap HIVE CHART Price Monitoring...");
 var tickerThread = spawn.fork(__dirname + '/monitors/tickerPrice.js'); // , [], {}
 log("WRITE: Initializing Custom JSON Chain Communication...");
 var scribeThread = spawn.fork(__dirname + '/monitors/hiveScribe.js'); // , [], {}
-//log("HSC: Initializing Local Hive Smart Chain Node");
-//var hscThread = spawn.fork(__dirname + '/monitors/hscEVM.js'); // , [], {}
 log("TRADE: Initializing Share Exchange & Trading...");
 var exchangeThread = spawn.fork(__dirname + '/monitors/exchangeEngine.js');
 log("FUTURES: Initializing HIVE Futures Engine...");
@@ -60,22 +63,16 @@ log("SEER: Initializing Seer Prediction Engine...");
 var seerThread = spawn.fork(__dirname + '/monitors/theSeer.js');
 log("LEASE: Initializing Hive Power Delegation Engine...")
 var leaseThread = spawn.fork(__dirname + '/monitors/leaseEngine.js');
-//const oneday = 60 * 60 * 24 * 1000;
-//log(`INITTIME: One Day is ${oneday}ms`);
 
-//185.130.44.165
 hive.api.setOptions({ url: "https://api.hive.blog" });
 
-var chatHist = [];
-var canUserTransact = []; //stores users logged in and if they are permitted to transact - stops a potential to tip and bet at the same time to overwrite balance
-var usersInvest = {};
-var userSockets = {};
-var socketList = [];
-var userRawSockets = [];
-var socketListKeys = Object.keys(socketList);
-var usersHivePower = {};
+var onlineCounter = pm2.onlineCounter;
+var dateNow = new Date().getTime();
 
-var founderslist = [];
+//==================================================
+//--------------------------------------------------
+//     Founders & Backers & ShareHolders
+//--------------------------------------------------
 var foundersload = () => {
   fs.readFile(__dirname + "/lists/founders.csv", function(err, data){
     if(err) return false;
@@ -90,10 +87,9 @@ var foundersload = () => {
       }
     }
   });
-};
+};//END foundersload
 foundersload();
 
-var backerslist = [];
 var backersload = () => {
   fs.readFile(__dirname + "/lists/backers.csv", function(err, data){
     if(err) return false;
@@ -108,10 +104,9 @@ var backersload = () => {
       }
     }
   });
-};
+};//END backersload
 backersload();
 
-var hlspreholderlist = [];
 var hlspreholder = () => {
   fs.readFile(__dirname + "/lists/birds.json", function(err, data){
     if(err) return false;
@@ -126,218 +121,13 @@ var hlspreholder = () => {
       }
     }
   });
-};
+};//END hlspreholder
 hlspreholder();
 
-var auditArray = [];
-var auditWalletArray = [];
-
-
-var onlineCounter = pm2.onlineCounter;
-
-
-var maxWin = 0;
-var bankRoll = 0;
-var greedBR = 0;
-var siteProfit = 0;
-var userTokens = {};
-var siteTake = 0;
-var siteEarnings;
-var newCurrentBlock = 0;
-var synced;
-var blockNum = 0;
-var dateNow = new Date().getTime();
-let btcprice;
-let hivebtcprice;
-let hiveprice;
-let hbdbtcprice;
-let hbdprice;
-let hivePriceData = [];
-let enableLenderUSDcost = 1.01;
-let withdrawUSDcost = 0.25; // $0.10 USD withdraw fee
-let contractDeployUSDcost = 0.50;// $0.50 USD contract creation fee
-let cancelContractFeePercent = 1;
-
-//bn == binance.com | cm == coinmarketcap.com | wc == worldcoinindex.com | cg == coingecko.com | bx == bittrex
-let priceSourceNameArray = ["bn", "cm", "wc", "cg", "bx"];
-let priceSourceArray = [{bn:0}, {cm:0}, {wc:0}, {cg: 0}];
-let priceSourceIndex = 3;
-let priceSourceActive = "cg";
-
-var labelstack = [];
-var datas = [];
-
-var oldprice;
-var lastprice;
-
-var spotprice;
-var spreadpercent = config.cfdspread;
-var longHIVEprice;
-var shortHIVEprice;
-
-var hotWalletBalance = 0;
-var coldWalletBalance = 0;
-var hotWalletData;
-var coldWalletData;
-
-var priceNonce = 0;
-
-function returnTime(){
-  var time = new Date();
-  time.setHours(time.getHours() + 18);
-  time = (time).toUTCString();
-  time = time.slice(17, time.length - 4);
-  return time;
-}
-
-
-function simpleStringify(object){
-    var simpleObject = {};
-    for (var prop in object ){
-        if (!object.hasOwnProperty(prop)){
-            continue;
-        }
-        if (typeof(object[prop]) == 'object'){
-            continue;
-        }
-        if (typeof(object[prop]) == 'function'){
-            continue;
-        }
-        simpleObject[prop] = object[prop];
-    }
-    return [simpleObject]; // returns cleaned up JSON
-};
-
-var cgData;
-var CGpricecheck = async(coin) => {
-  if(!coin) return false;
-  var coinGeckoPriceCheck = await Price.cgpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
-  if(debug === true){
-    log(`var CGpricecheck = async(${coin})`)
-    log(`coinGeckoPriceCheck:`);
-    log(coinGeckoPriceCheck);
-  }
-  return coinGeckoPriceCheck;
-};//END WCpricecheck
-
-async function cg(coin){
-  wcData = await CGpricecheck(coin);
-  if(debug === true){
-    log(`async function cg(${coin})`);
-    log(`cgData`);
-    log(cgData);
-  }
-  return wcData;
-};
-cg('hive');
-
-var bncData;
-var BNCpricecheck = async(coin) => {
-if(!coin) return false;
-var bncPriceCheck = await Price.bncpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
-if(debug === true){
-log(`BNCpricecheck:`);
-log(bncPriceCheck);
-}
-return bncPriceCheck;
-};//END CMCpricecheck
-
-async function bn(coin){
-  bncData = await BNCpricecheck(coin);
-  if(debug === true){
-  log(`bncData`);
-  log(bncData);
-}
-}
-bn('HIVE');
-
-
-var cmcData;
-var CMCpricecheck = async(coin) => {
-if(!coin) return false;
-var coinMarketCapPriceCheck = await Price.cmcpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
-if(debug === true){
-log(`coinMarketCapPriceCheck:`);
-log(coinMarketCapPriceCheck);
-}
-return coinMarketCapPriceCheck;
-};//END CMCpricecheck
-
-async function cm(coin){
-  cmcData = await CMCpricecheck(coin);
-  if(debug === true){
-  log(`cmcData`);
-  log(cmcData);
-}
-}
-cm('hive');
-
-
-var wcData;
-var WCpricecheck = async(coin) => {
-  if(!coin) return false;
-  var worldCoinIndexPriceCheck = await Price.wcpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
-  if(debug === true){
-    log(`var WCpricecheck = async(${coin})`)
-    log(`worldCoinIndexPriceCheck:`);
-    log(worldCoinIndexPriceCheck);
-  }
-  return worldCoinIndexPriceCheck;
-};//END WCpricecheck
-
-async function wc(coin){
-  wcData = await WCpricecheck(coin);
-  if(debug === true){
-    log(`async function wc(${coin})`);
-    log(`wcData`);
-    log(wcData);
-  }
-  return wcData;
-};
-wc('hive');
-
-//https://api.coingecko.com/api/v3/coins/hive?tickers=true&market_data=true&community_data=false&developer_data=false&sparkline=false
-var pricecheckinit = false;
-var pricechecklast = 0;
-
-function futuresHIVEUSDAvg() {
-  var response;
-  var fhap = Price.HIVEUSDMarketsAverage();
-
-  if(fhap == undefined) return log(`futuresHIVEUSDAvg "fhap" Undefined!`);
-  //log(`fhap:`)
-  //log(fhap)
-  var sn = fhap.sourcecount;
-  fhap = fhap.price;
-  //log(`futuresHIVEUSDAvg HIVE/USD Price:`);
-  //log(fhap);
-  var spread = spreadpercent / 100;
-  if(pricechecklast == fhap) {
-    pricechecklast = fhap;
-    if(verbose === false) log(`SOCKET: futuresHIVEUSDAvg() SAME PRICE - Cancel Update`)
-    return;
-  } else {
-    pricechecklast = fhap;
-    hiveprice = fhap;
-    longHIVEprice = parseFloat((fhap + (fhap * spread)).toFixed(8));
-    shortHIVEprice = parseFloat((fhap - (fhap * spread)).toFixed(8));
-    futuresThread.send(JSON.stringify({price:hiveprice, date: dateNow}));
-    if(socketListKeys != undefined){
-      socketListKeys.forEach((item, i) => {
-          //log(`sent priceupdate to ${item}`)
-          socketList[item].emit('priceupdate', {hiveusdprice: hiveprice, hiveshortprice: shortHIVEprice, hivelongprice: longHIVEprice, hivebtcprice: hivebtcprice, sources: sn, date: dateNow}); /// chart: chartShit // to(socketListKeys[i])
-      });
-    }
-  }
-
-}
-
-futuresHIVEUSDAvg();
-
-var futuresCheckTimer = setInterval(function(){
-  futuresHIVEUSDAvg();
-}, 1000);
-
+//==================================================
+//--------------------------------------------------
+//     HIVE Price
+//--------------------------------------------------
 var pricecheck = async(coin) => {
   //var pricereply;
   if(coin == undefined) {
@@ -382,7 +172,7 @@ var pricecheck = async(coin) => {
           pricechecklast = hiveprice;
           pricecheckinit = true;
         }
-        futuresThread.send(JSON.stringify({price:hiveprice, date: timeDate}));
+        futuresThread.send(JSON.stringify({type:'price', price:hiveprice, date: timeDate}));
         PriceData.create({hivebtcprice: hivebtcprice, hiveusdprice: hiveprice, hbdbtcprice: hbdbtcprice, hbdusdprice: hbdprice, btcusdprice: btcprice, block: newCurrentBlock, synced: synced, validdate: timeDate});
 
 
@@ -580,9 +370,148 @@ var pricecheck = async(coin) => {
     //     return response;
     //   + "}).catch(e => {log(`SOCKET: ERROR: pricecheck: ${e} - `);return false;});";
   });
+};//END pricecheck
+
+var CGpricecheck = async(coin) => {
+  if(!coin) return false;
+  var coinGeckoPriceCheck = await Price.cgpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
+  if(debug === true){
+    log(`var CGpricecheck = async(${coin})`)
+    log(`coinGeckoPriceCheck:`);
+    log(coinGeckoPriceCheck);
+  }
+  return coinGeckoPriceCheck;
+};//END WCpricecheck
+
+async function cg(coin){
+  wcData = await CGpricecheck(coin);
+  if(debug === true){
+    log(`async function cg(${coin})`);
+    log(`cgData`);
+    log(cgData);
+  }
+  return wcData;
 };
+cg('hive');
 
+var BNCpricecheck = async(coin) => {
+if(!coin) return false;
+var bncPriceCheck = await Price.bncpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
+if(debug === true){
+log(`BNCpricecheck:`);
+log(bncPriceCheck);
+}
+return bncPriceCheck;
+};//END CMCpricecheck
 
+async function bn(coin){
+  bncData = await BNCpricecheck(coin);
+  if(debug === true){
+  log(`bncData`);
+  log(bncData);
+}
+};//END bn
+bn('HIVE');
+
+var CMCpricecheck = async(coin) => {
+if(!coin) return false;
+var coinMarketCapPriceCheck = await Price.cmcpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
+if(debug === true){
+log(`coinMarketCapPriceCheck:`);
+log(coinMarketCapPriceCheck);
+}
+return coinMarketCapPriceCheck;
+};//END CMCpricecheck
+
+async function cm(coin){
+  cmcData = await CMCpricecheck(coin);
+  if(debug === true){
+    log(`cmcData`);
+    log(cmcData);
+  }
+};//END cm
+cm('hive');
+
+var WCpricecheck = async(coin) => {
+  if(!coin) return false;
+  var worldCoinIndexPriceCheck = await Price.wcpricecheck(coin).then((res) => {log(res);return res;}).catch((e) => {log(e)});
+  if(debug === true){
+    log(`var WCpricecheck = async(${coin})`)
+    log(`worldCoinIndexPriceCheck:`);
+    log(worldCoinIndexPriceCheck);
+  }
+  return worldCoinIndexPriceCheck;
+};//END WCpricecheck
+
+async function wc(coin){
+  wcData = await WCpricecheck(coin);
+  if(debug === true){
+    log(`async function wc(${coin})`);
+    log(`wcData`);
+    log(wcData);
+  }
+  return wcData;
+};//END wc
+wc('hive');
+
+//https://api.coingecko.com/api/v3/coins/hive?tickers=true&market_data=true&community_data=false&developer_data=false&sparkline=false
+//==================================================
+//--------------------------------------------------
+//     HIVE Futures
+//--------------------------------------------------
+function futuresHIVEUSDAvg() {
+  var response;
+  var fhap = Price.HIVEUSDMarketsAverage();
+
+  if(fhap == undefined) return log(`futuresHIVEUSDAvg "fhap" Undefined!`);
+  //log(`fhap:`)
+  //log(fhap)
+  var sn = fhap.sourcecount;
+  fhap = fhap.price;
+  //log(`futuresHIVEUSDAvg HIVE/USD Price:`);
+  //log(fhap);
+  var spread = spreadpercent / 100;
+  if(pricechecklast == fhap) {
+    pricechecklast = fhap;
+    if(verbose === false) log(`SOCKET: futuresHIVEUSDAvg() SAME PRICE - Cancel Update`)
+    return;
+  } else {
+    pricechecklast = fhap;
+    hiveprice = fhap;
+    longHIVEprice = parseFloat((fhap + (fhap * spread)).toFixed(8));
+    shortHIVEprice = parseFloat((fhap - (fhap * spread)).toFixed(8));
+    futuresThread.send(JSON.stringify({type:'price', price:hiveprice, date: dateNow}));
+    if(socketListKeys != undefined){
+      socketListKeys.forEach((item, i) => {
+          //log(`sent priceupdate to ${item}`)
+          socketList[item].emit('priceupdate', {hiveusdprice: hiveprice, hiveshortprice: shortHIVEprice, hivelongprice: longHIVEprice, hivebtcprice: hivebtcprice, sources: sn, date: dateNow}); /// chart: chartShit // to(socketListKeys[i])
+      });
+    }
+  }
+};//END futuresHIVEUSDAvg
+futuresHIVEUSDAvg();
+
+var futuresCheckTimer = setInterval(function(){
+  futuresHIVEUSDAvg();
+}, 1000);//END futuresCheckTimer
+
+function openFutureContract(data){
+  if(!data) return false;
+  var u = data.username;
+  var a = data.amount;
+  var m = data.margin;
+  var t = data.type;
+  if(!u || !a || !m || !t) return false;
+  futuresThread.send(JSON.stringify({type:'open', data:{username:u, amount: a, margin: m, type: t}, date: timeDate}));
+};//EMD openFutureContract
+
+function closeFutureContract(data){
+  if(!data) return false;
+  var u = data.username;
+  var i = data.id;
+  if(!u || !i) return false;
+  futuresThread.send(JSON.stringify({type:'close', data:{username:u, id: i}, date: timeDate}));
+};//EMD openFutureContract
 
 /*
   try {
@@ -636,25 +565,11 @@ var pricecheck = async(coin) => {
 };
 */
 
-
 pricecheck();
 
 var priceCheckTimer = setInterval(function(){
   pricecheck();
 }, 30000);
-
-
-function censor(censor) {
-  var i = 0;
-  return function(key, value) {
-    if(i !== 0 && typeof(censor) === 'object' && typeof(value) == 'object' && censor == value)
-      return '[Circular]';
-    if(i >= 29) // seems to be a harded maximum of 30 serialized objects?
-      return '[Unknown]';
-    ++i; // so we know we aren't using the original object anymore
-    return value;
-  }
-};
 
 async function founders(){
   founderslist = [];
@@ -663,7 +578,7 @@ async function founders(){
     founderslist.push(item.voter);
   });
   return founderslist;
-};
+};//END founders
 founders();
 
 setTimeout(function(){
@@ -716,9 +631,7 @@ function jsonBreadCrumb(name, action, payload, socketid) {
   }
 };//END jsonBreadCrumb
 
-
-
-/*
+/* //sendbackersupdate
 async function sendbackersupdate() {
 await DepositData.findAll({
 limit: 100,
@@ -795,23 +708,17 @@ sendbackersupdate();
 //}, 30000);
 */
 
-
-async function splitOffVests(string){
-  if(string){
-    if(debug === true) log(`SOCKET: async function splitOffVests(${string})`);
-    return parseFloat(string.split(' ')[0]);
-  } else {
-    return false;
-  }
-};
-
+//==================================================
+//--------------------------------------------------
+//     User Stats
+//--------------------------------------------------
 var getManaBarRC = async(user) => {
   if(!user) return "No User Specified";
   if(debug === true) log(`SOCKET: getUserWDRoutes(${user})`);
   var userRC = await manaBar.fetchRC(user);
   if(debug === true) log(`SOCKET: RC - ${user} Resource Credit Available: ${userRC}%`);
   return userRC;
-};
+};//END getManaBarRC
 
 var getUserWDRoutes = async(user) => {
   if(!user) return "No User Specified";
@@ -819,7 +726,7 @@ var getUserWDRoutes = async(user) => {
   var userWD = await getPowerDownPath.getRoutes(user);
   if(debug === true) log(`SOCKET: userWD: ${userWD}`);
   return userWD;
-};
+};//END getUserWDRoutes
 
 var getVotePowerPercent = async(user) => {
   if(!user) return "No User Specified";
@@ -827,7 +734,7 @@ var getVotePowerPercent = async(user) => {
   var userVP = await getVP.fetch(user);
   if(debug === true) log(`SOCKET: userVP: ${userVP}`);
   return userVP;
-};
+};//END getVotePowerPercent
 
 var getHivePower = async(user) => {
   if(!user) return "No User Specified";
@@ -853,7 +760,7 @@ var getHivePower = async(user) => {
     log(`${user} - ${hiveVested} HP > ${loanMax} HIVE Credit`);
     log(`${user} - ${hiveHPDelegated} HP Delegated - ${vp}% Vote Power`)
     return hiveVested;
-};//END getHivePower = async(user)
+};//END getHivePower
 
 var getHiveDelegations = async(user) => {
   var vestsDelegated = 0;
@@ -877,8 +784,12 @@ var getHiveDelegations = async(user) => {
   //hive.api.getVestingDelegations(`${user}`, '', 1000, await function(err, result) {
   //  console.log(err, result);
   //});
-};//END getHivePower = async(user)
+};//END getHivePower =
 
+//==================================================
+//--------------------------------------------------
+//      Sequelize Database Initialize
+//--------------------------------------------------
 var connectiontest = async() => {
   try {
     await sequelize.authenticate();
@@ -887,9 +798,12 @@ var connectiontest = async() => {
     log('ERROR: Unable to Connect to the Database:', error);
   }
 };
-
 connectiontest();
 
+//==================================================
+//--------------------------------------------------
+//      Audit
+//--------------------------------------------------
 function siteAudit() {
   if(config.verbose === true) log(`SOCKET: Start Site Audit!`);
   var utpayload = JSON.stringify({type:'getacct', username:'siteaudit'});
@@ -915,10 +829,11 @@ function siteAuditDaemon() {
 
 siteAuditDaemon();
 
-//===================================================
-//Start the socket.io stuff
-//===================================================
-let pingArray = [];
+//==================================================
+//--------------------------------------------------
+//     Socket.io Functions
+//--------------------------------------------------
+
 exports = module.exports = function(socket, io){
 
   socket.on('connectinit', function(cb){
@@ -1726,6 +1641,19 @@ socket.on('changenode', function(req) {
   }
 });
 
+socket.on('closecfd', async function(req, cb){
+  if(debug === true) {
+    log(`socket.on('closecfd'`);
+    log(req);
+  }
+  if(!req.id) return cb('No Contract ID was Specified!', {token: req.token});
+  var user = socket.request.session['user'];
+  log(req)
+  var cfdpayload = JSON.stringify({type:'close', username: user, id: req.id, token: req.token, socketid: simpleStringify(socketList[socket.id])});
+  futuresThread.send(cfdpayload);
+  return cb(null, {msg: `Trying to Cancel CFD Contract ID #${req.id}.. Please Wait`, token: req.token});
+});
+
 socket.on('createloan', async function(req, cb){
   if(debug === true) {
     log(`socket.on('createloan',`);
@@ -2252,11 +2180,13 @@ socket.on('acceptloan', async function(req, cb) {
         });
       });
       // END io
-    }
+    };//END exports = module.exports
 
-
-
-    rpcThread.on('message', function(m) {
+//==================================================
+//--------------------------------------------------
+//     Monitor & Cross Module
+//--------------------------------------------------
+rpcThread.on('message', function(m) {
       try {
         m = JSON.parse(m);
         if(debug === true){
@@ -2268,16 +2198,16 @@ socket.on('acceptloan', async function(req, cb) {
       }
       switch(m.type){
         case 'emit':
-          var name = m.name.toString();
-          var socketidparse = m.socketid;
-          var socketid = m.socketid[0].id
-          var newpayload = [];
-          var incomingpayload = m.payload;
-          var socketCorrect = socketList[m.socketid[0].id];
-          incomingpayload.forEach((item, i) => {
-            newpayload.push(item);
-          });
-          if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload[0]);
+        var name = m.name.toString();
+        var socketidparse = m.socketid;
+        var socketid = m.socketid[0].id
+        var newpayload = [];
+        var incomingpayload = m.payload;
+        var socketCorrect = socketList[m.socketid[0].id];
+        incomingpayload.forEach((item, i) => {
+          newpayload.push(item);
+        });
+        if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload[0]);
         break;//END case 'emit'
         case 'massemit':
         var name = m.name.toString();
@@ -2304,7 +2234,7 @@ socket.on('acceptloan', async function(req, cb) {
             log(auditWalletArray);
           }
 
-            //auditArray.push({wallets: auditWalletArray});
+          //auditArray.push({wallets: auditWalletArray});
           break;//END case sitewallets
         }
         var masskeys = Object.keys(socketList);
@@ -2342,456 +2272,557 @@ socket.on('acceptloan', async function(req, cb) {
           userSockets[m.user].emit('greedupdate', {invested: m.invested, greed: m.greed, error: m.error, token: userTokens[m.user]});
         }
       } else if (m.type === 'blockupdate'){
-      newCurrentBlock = m.block;
-      synced = m.synced;
-      /*
-      var bupdkeys = Object.keys(userSockets);
-      if(bupdkeys != undefined){
-      for (var i = 0; i< bupdkeys.length;i++){
+        newCurrentBlock = m.block;
+        synced = m.synced;
+        /*
+        var bupdkeys = Object.keys(userSockets);
+        if(bupdkeys != undefined){
+        for (var i = 0; i< bupdkeys.length;i++){
         if (userSockets[bupdkeys[i]]) {
-            userSockets[bupdkeys].emit('latestblock', {block:m.block});
-          }
-       }
-     }
-     */
-        socketListKeys = Object.keys(socketList);
-        if(socketListKeys != undefined){
-          socketListKeys.forEach((item, i) => {
-              socketList[item].emit('latestblock', {block:m.block, behind: m.behind, synced:m.synced}); ///to(socketListKeys[i])
-          });
-        }
-      } else if (m.type === 'depositconfirmed'){
-        if (userSockets[m.user]) {
-          jsonBreadCrumb('wallet', 'deposit', {txid: m.txid});
-          userSockets[m.user].emit('depositcredit', {balance: m.balance, amount: m.amount, coin: m.coin});
-        }
-      } else if (m.type === 'grabacct') {
-
-      } else {
-
+        userSockets[bupdkeys].emit('latestblock', {block:m.block});
       }
-
-    });//END rpcThread.on('message',
-
-    var auditWdFeeArray;
-    userThread.on('message', function(m) {
-        try{
-          m = JSON.parse(m);
-          if(debug === true) {
-            log(`userThread.on('message' message:`);
-            log(m);
-          }
-        } catch(e){
-          log(e)
-        }
-        switch(m.type){
-          case 'emit':
-            var name = m.name.toString();
-            var socketidparse = m.socketid;
-            var socketid = m.socketid[0].id
-            var newpayload = [];
-            var incomingpayload = m.payload;
-            var socketCorrect = socketList[m.socketid[0].id];
-            incomingpayload.forEach((item, i) => {
-              newpayload.push(item);
-            });
-            if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload);
-          break;
-          case 'massemit':
-          var name = m.name.toString();
-          var newpayload = [];
-          log(m.payload);
-          var incomingpayload = [m.payload];
-          if(incomingpayload.length > 1){
-            incomingpayload.forEach((item, i) => {
-              auditWdFeeArray.push(item);
-            });
-          } else {
-            auditWdFeeArray = m.payload;
-          }
-          switch(m.name){
-            case 'wdfeeaudit':
-              log(`auditWdFeeArray:`);
-              log(auditWdFeeArray);
-
-            break;
-          }
-          var masskeys = Object.keys(socketList);
-          for (var i = 0; i < masskeys.length; i++){
-            if (socketList[masskeys[i]]) {
-              socketList[masskeys[i]].emit(`${name}`, auditWalletArray);
-            }
-          }
-          break;
-        }
-    });//END userThread.on('message',
-
-    exchangeThread.on('message', function(m) {
-        try{
-          m = JSON.parse(m);
-          if(debug === true){
-            log(`exchangeThread.on('message' message:`);
-            log(m);
-          }
-        } catch(e){
-          log(e)
-        }
-    });//END exchangeThread.on('message'
-
-    loanThread.on('message', function(m) {
-        try{
-          m = JSON.parse(m);
-          if(debug === true){
-            log(`loanThread.on('message' message:`);
-            log(m);
-          }
-        } catch(e){
-          log(e)
-        }
-        switch(m.type){
-          case 'emit':
-            var name = m.name.toString();
-            var socketidparse = m.socketid;
-            var socketCorrect = socketList[m.socketid[0].id];
-            var socketid = m.socketid[0].id
-            var newpayload = [];
-            var incomingpayload = m.payload;
-            if(incomingpayload != null) {
-              if(incomingpayload.length > 1){
-                incomingpayload.forEach((item, i) => {
-                  newpayload.push(item);
-                });
-              } else {
-                if((m.payload).length == 0) m.payload = [];
-                newpayload = m.payload;
-              }
-
-            }
-            switch(m.name){
-              case 'loadmyloans':
-              //jsonBreadCrumb('contracts', m.name, m.payload);
-              break;
-              case 'newloanmade':
-                jsonBreadCrumb('contracts', 'newloan', m.payload);
-              break;//END case 'newloanmade'
-              case 'loannuked':
-              if(m.payload == undefined)
-                jsonBreadCrumb('contracts', 'nukeloan', m.payload);
-              break;
-              default:
-                //jsonBreadCrumb('contracts', m.name, m.payload);
-            }
-          if (socketList[m.socketid[0].id]) {
-            socketCorrect.emit(`${name}`, newpayload);
-          }
-          break;
-          case 'massemit':
-          auditArray = [];
-          var name = m.name.toString();
-          switch(m.name){
-            case 'loadmyloans':
-
-            break;
-            case 'siteaudit':
-            if(auditWalletArray){
-
-              m.payload.push({wallets: auditWalletArray});
-              m.payload.push({wdfees: auditWdFeeArray});
-              //jsonBreadCrumb('security', 'audit', [m.payload]);
-              //log(auditArray);
-            }
-            break;
-          }
-          var newpayload = [];
-          var incomingpayload = [m.payload];
-          if(incomingpayload.length > 1){
-            incomingpayload.forEach((item, i) => {
-              auditArray.push(item);
-            });
-            //auditArray.push(auditWalletArray);
-          } else {
-            auditArray = m.payload;
-            //auditArray.push(auditWalletArray);
-          }
-
-          if(auditArray != undefined){
-            try{
-              jsonBreadCrumb('security', 'audit', [auditArray]);
-            } catch(e) {
-              //log(e)
-            }
-            var masskeys = Object.keys(socketList);
-            for (var i = 0; i < masskeys.length; i++){
-              if (socketList[masskeys[i]]) {
-                socketList[masskeys[i]].emit(`${name}`, auditArray);
-              }
-            }
-          }
-          break;
-        }
-
-        if (m.type === 'infoloandata'){
-        //log(`MYLOANS FIRED`)
-        //log(m);
-        if (userSockets[m.username]) {
-          userSockets[m.username].emit('infoloandata', {loandata: m.loandata, token: m.token});
-        }
-      } else if (m.type === 'depositconfirmed'){
-        if (userSockets[m.username]) {
-          jsonBreadCrumb('wallet', 'deposit', {txid: m.txid});
-          userSockets[m.username].emit('depositcredit', {balance: m.balance, amount: m.amount, coin: m.coin});
-        }
-      } else if (m.type === 'statereply'){
-        if (userSockets[m.username]) {
-          userSockets[m.username].emit('statereply', {loanstates: m.loanstates, token: m.token});
-        }
-      }
-    });//END loanThread.on('message',
-
-    tickerThread.on('message', function(m) {
-        try{
-          m = JSON.parse(m);
-          if(debug === true){
-            log(`SOCKET: tickerThread.on('message' message:`);
-            log(m);
-          }
-        } catch(e){
-          m = JSON.parse(JSON.stringify(m));
-        }
-        switch(m.type){
-          case 'emit':
-            var name = m.name.toString();
-            var socketidparse = m.socketid;
-            var socketCorrect = socketList[m.socketid[0].id];
-            var socketid = m.socketid[0].id
-            var newpayload = [];
-            var incomingpayload = m.payload;
-            if(incomingpayload.length > 1){
-              incomingpayload.forEach((item, i) => {
-                newpayload.push(item);
-              });
-            } else {
-              newpayload = m.payload;
-            }
-            switch(m.name){
-              case 'priceshift':
-                jsonBreadCrumb('contracts', 'priceshift', m.payload);
-              break;//END case 'newloanmade'
-              case 'price':
-                jsonBreadCrumb('price', 'update', m.payload);
-              break;
-            }
-            if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload);
-          break;
-
-          case 'massemit':
-            var name = m.name.toString();
-            var newpayload = [];
-            var incomingpayload = [m.payload];
-            if(incomingpayload.length > 1){
-              incomingpayload.forEach((item, i) => {
-                newpayload.push(item);
-              });
-            } else {
-              newpayload = m.payload;
-            }
-
-            switch(m.name){
-              case 'cgmarketfetch':
-              log(`cgmarketfetch m.payload:`);
-              log(m.payload);
-              return;
-              break;
-            }
-
-            var masskeys = Object.keys(socketList);
-            for (var i = 0; i< masskeys.length;i++){
-              if (socketList[masskeys[i]]) {
-                socketList[masskeys[i]].emit(`${name}`, newpayload);
-              }
-            }
-          break;
-        }
-
-        if (m.type === 'infoloandata'){
-        //log(`MYLOANS FIRED`)
-        //log(m);
-        if (userSockets[m.username]) {
-          userSockets[m.username].emit('infoloandata', {loandata: m.loandata, token: m.token});
-        }
-      } else if (m.type === 'priceerror'){
-        if (userSockets[m.username]) {
-          userSockets[m.username].emit('depositcredit', {balance: m.balance, amount: m.amount, coin: m.coin});
-        }
-      }
-    });//END tickerThread.on('message',
-
-
-    let loginContent = `<center style="font-weight: 600;"><h3 class="pagehead" style="color:white;">HIVE Account Identity Verification</h3>` + //Accessing Hive.Loans Requires a Quick
-    `<b id="acctflash1">To Access this Service Specify an Account Below:</b><br>` + //o Login or Register Type a HIVE Account Below
-    `<br>` +
-    `<div class="casperInput input-group">` +
-    `<span class="input-group-prepend">` +
-    `<i class="fas fa-fw fa-user"></i>` +
-    `</span>` +
-    `<input type="text" id="usernameinput" readonly onkeyup="$(this).val(this.value);" style="">` +
-    `<span class="input-group-append" id="saveUser">` +
-    `<span class="input-group-text">` +
-    `<span class="fa-stack fa-1x saveLogin" onclick="loginUserName($('#usernameinput').val());" style="">` +
-    `<i class="far fa-save fa-stack-1x"></i>` +
-    `<i class="fas fa-ban fa-stack-1x  hidden" id="saveLoginBan" style="color:red"></i>` +
-    `</span>` +
-    `</span>` +
-    `</span>` +
-    `</div>` +
-    `<code><span id="loginfuckery"></span></code><br>`+
-    `<a href="#" onClick="$('#2fa').removeClass('hidden'); $(this).hide();" style="color:white !important;text-decoration: none !important;" class="dottybottom">` +
-    `<sub>` +
-    `Click here if you have 2FA enabled` +
-    `</a>` +
-    `</sub>` +
-    `<br>` +
-    `<input type='text' onload="$('#2fa').hide();" style="background: white;color: black;text-align: center;width: 9vw;height: 3vh;font-size: large; border-radius:10px;" class="hidden" placeholder="2FA Code Here" id='2fa'>` +
-    `<br>` +
-    `Choose a Verification Method:` +
-    `<br><br>` +
-    `<center>` +
-    `<table>` +
-    `<tbody>` +
-    `<tr>` +
-    `<td id="loginhivesigner" style="">` +
-    `<button type="button" class="button disabledImg" style="" id="hivesignerlogin" onclick="/*login();*/ showErr('HiveSigner Login Currently Disabled!')" title="Click here to verify identify with Hive KeyChain"><img src="/img/hivesigner.svg" class="hivesignerlogo diabledImg" style="width:89%"></button></td>` +
-    //`<!--<td id="loginspin">` +
-    //`</td>-->` +
-    `<td id="loginkeychain" style="">` +
-    `<button type="button" style="" class="button" id="skclogologin" onclick="skclogologinclick(); showSuccess('Initializing Keychain.. Please Wait'); dotdotdotmaker($('#skclogologin')); skcusersocket($('#usernameinput').val());" title="Click here to verify identify with Hive KeyChain"><img src="/img/keychaintext.png" class="keychainlogo" style="width:69%"></button></td></tr></tbody></table></center>`+ // $('#skclogologin').html(demLoadDots);
-    `<br><br>` +
-    `<span style="font-size: smaller;">` +
-    //`<i class="fa fa-exclamation-triangle sexyblackoutline" style="color:gold;" aria-hidden="true"></i> ` +
-    `By Logging in you also Agree to our <a href="#" style="color:white !important;" class="dottybottom" id="rtos" onClick="termsOfService();">Terms of Service</a>` +
-    `</span>`+
-    `<hr class="allgrayeverythang">` +
-    `<a style="color:white;" class="doubleunderurl" href="https://hivesigner.com/" target="_blank">HiveSigner</a> and <a style="color:white;" class="doubleunderurl" href="https://chrome.google.com/webstore/detail/hive-keychain/jcacnejopjdphbnjgfaaobbfafkihpep?hl=en" target="_blank">Hive Keychain</a><br>are Accepted for Verification<br><br>`+
-    `<br>` +
-    `We'll never ask for government ID or implement` +
-    `<br>` +
-    `any Form of KYC Record Keeping Compliance` +
-    `<br><br><br>`+
-    `<br>` +
-    `<sub style="position: absolute; bottom: 0; width: 100%; left: 0; text-shadow: none !important; color: black;">` +
-    `<br><br>` +
-    `<b style="color:white;" class="sexyblackoutline">Our servers are hosted by an extremely privacy savvy company</b> <a style="color:white !important;" class="sexyblackoutline doubleunderurl" target="_blank" rel="noopener" href="https://pay.privex.io/order?r=klye"><b><u>Privex.io</u></b> <img src="/img/privex.svg" style="max-width: 25px !important; max-height: 25px !important; bottom: 0; right: 0; position: absolute; "></a></sub>`+
-    `<script>$('#jumboTitle').html('Hive.Loans&nbsp;' + 'v${version}');</script>`;
-
-//------------------------------------------------
-//------------------------------------------------
-// Functions, thingies and close time shit
-//------------------------------------------------
-//------------------------------------------------
-
-    function get2fa(user, cb){
-      fs.readFile( __dirname + "/db/logins/" + user, function(err, data){ //read user data
-        if (err) return cb(err, null);
-        data = JSON.parse(data);
-        if (typeof data['2fa'] === 'undefined') return cb(null, false);
-        return cb(null, true);
-      });
     }
-
-    //save 2FA to users account
-    function save2fa(secret, user, cb){
-      fs.readFile( __dirname + "/db/logins/" + user, function(err, data){ //read user data
-        if (err) return cb(err, null);
-        data = JSON.parse(data);
-        data['2fa'] = secret;
-        fs.writeFile(__dirname + "/db/logins/" + user, JSON.stringify(data), function(err,d){
-          if (err) return cb(err, null);
-          return cb(null, true);
-        });
-      });
-    }
-
-    //test if a 2FA attempt is valid
-    function is2FACorrect(code, secret){
-      var verified = speakeasy.totp.verify({
-        secret: secret,
-        encoding: 'base32',
-        token: code
-      });
-      return verified;
-    }
-
-    //test a token against a users current token
-    function testToken(socket, token){
-      if ( userTokens[socket.request.session['user']] !== token) return false;
-      var token = crypto.randomBytes(64).toString('base64');
-      userTokens[socket.request.session['user']] = token;
-      return true;
-    }
-
-    //create a random base64 token
-    function changeToken(user){
-      if(debug === false) log(`changeToken(${user})`);
-      var token = crypto.randomBytes(64).toString('base64');
-      if(debug === false) log(`old userTokens[user] = ${userTokens[user]}`);
-      if (userTokens[user]) userTokens[user] = token;
-      if(debug === false) log(`new userTokens[user] = ${userTokens[user]}`);
-      return token;
-    }
-    //create salt and hash password
-    function hashPassword(password) {
-      var salt = crypto.randomBytes(64).toString('base64');
-      return sha512(password, salt);
-    }
-
-    //sha512 of password and salt
-    var sha512 = function(password, salt){
-      var hash = crypto.createHmac('sha512', salt); /** Hashing algorithm sha512 */
-      hash.update(password);
-      var value = hash.digest('hex');
-      return {
-        salt:salt,
-        passwordHash:value
-      };
-    };
-
-    //Check password
-    function isPasswordCorrect(savedHash, savedSalt, passwordAttempt) {
-      var passwordHash = sha512(passwordAttempt, savedSalt);
-      if (passwordHash.passwordHash === savedHash){
-        return true;
-      } else {
-        return false;
-      }
-    };
-
-    // Function to check letters and numbers
-    function alphanumeric(inputtxt) {
-      var letterNumber = /^[0-9a-zA-Z]+$/;
-      if(inputtxt.match(letterNumber)){
-        return true;
-      } else {
-        return false;
-      }
-    };
-
-    function largest(current, newL){
-      if (current < newL){
-        return newL;
-      }
-      return current;
-    };
-
-    function timeout(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    };
-
-    process.on('SIGINT', function () {
-      if(!blockNum) {
-              log(`Shutting down in 1 seconds, start again with block ${blockNum}, Halting the Application!`);
-      } else {
-              log(`Shutting down in 1 seconds, Halting the Application!`);
-      }
-      shutdown = true;
-      setTimeout(bail, 1000);
+  }
+  */
+  socketListKeys = Object.keys(socketList);
+  if(socketListKeys != undefined){
+    socketListKeys.forEach((item, i) => {
+      socketList[item].emit('latestblock', {block:m.block, behind: m.behind, synced:m.synced}); ///to(socketListKeys[i])
     });
+  }
+} else if (m.type === 'depositconfirmed'){
+  if (userSockets[m.user]) {
+    jsonBreadCrumb('wallet', 'deposit', {txid: m.txid});
+    userSockets[m.user].emit('depositcredit', {balance: m.balance, amount: m.amount, coin: m.coin});
+  }
+} else if (m.type === 'grabacct') {
+
+} else {
+
+}
+
+});//END rpcThread.on('message',
+
+var auditWdFeeArray;
+userThread.on('message', function(m) {
+  try{
+    m = JSON.parse(m);
+    if(debug === true) {
+      log(`userThread.on('message' message:`);
+      log(m);
+    }
+  } catch(e){
+    log(e)
+  }
+  switch(m.type){
+    case 'emit':
+    var name = m.name.toString();
+    var socketidparse = m.socketid;
+    var socketid = m.socketid[0].id
+    var newpayload = [];
+    var incomingpayload = m.payload;
+    var socketCorrect = socketList[m.socketid[0].id];
+    incomingpayload.forEach((item, i) => {
+      newpayload.push(item);
+    });
+    if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload);
+    break;
+    case 'massemit':
+    var name = m.name.toString();
+    var newpayload = [];
+    log(m.payload);
+    var incomingpayload = [m.payload];
+    if(incomingpayload.length > 1){
+      incomingpayload.forEach((item, i) => {
+        auditWdFeeArray.push(item);
+      });
+    } else {
+      auditWdFeeArray = m.payload;
+    }
+    switch(m.name){
+      case 'wdfeeaudit':
+      log(`auditWdFeeArray:`);
+      log(auditWdFeeArray);
+
+      break;
+    }
+    var masskeys = Object.keys(socketList);
+    for (var i = 0; i < masskeys.length; i++){
+      if (socketList[masskeys[i]]) {
+        socketList[masskeys[i]].emit(`${name}`, auditWalletArray);
+      }
+    }
+    break;
+  }
+});//END userThread.on('message',
+
+exchangeThread.on('message', function(m) {
+  try{
+    m = JSON.parse(m);
+    if(debug === true){
+      log(`exchangeThread.on('message' message:`);
+      log(m);
+    }
+  } catch(e){
+    log(e)
+  }
+});//END exchangeThread.on('message'
+
+loanThread.on('message', function(m) {
+  try{
+    m = JSON.parse(m);
+    if(debug === true){
+      log(`loanThread.on('message' message:`);
+      log(m);
+    }
+  } catch(e){
+    log(e)
+  }
+  switch(m.type){
+    case 'emit':
+    var name = m.name.toString();
+    var socketidparse = m.socketid;
+    var socketCorrect = socketList[m.socketid[0].id];
+    var socketid = m.socketid[0].id
+    var newpayload = [];
+    var incomingpayload = m.payload;
+    if(incomingpayload != null) {
+      if(incomingpayload.length > 1){
+        incomingpayload.forEach((item, i) => {
+          newpayload.push(item);
+        });
+      } else {
+        if((m.payload).length == 0) m.payload = [];
+        newpayload = m.payload;
+      }
+
+    }
+    switch(m.name){
+      case 'loadmyloans':
+      //jsonBreadCrumb('contracts', m.name, m.payload);
+      break;
+      case 'newloanmade':
+      jsonBreadCrumb('contracts', 'newloan', m.payload);
+      break;//END case 'newloanmade'
+      case 'loannuked':
+      if(m.payload == undefined)
+      jsonBreadCrumb('contracts', 'nukeloan', m.payload);
+      break;
+      default:
+      //jsonBreadCrumb('contracts', m.name, m.payload);
+    }
+    if (socketList[m.socketid[0].id]) {
+      socketCorrect.emit(`${name}`, newpayload);
+    }
+    break;
+    case 'massemit':
+    auditArray = [];
+    var name = m.name.toString();
+    switch(m.name){
+      case 'loadmyloans':
+
+      break;
+      case 'siteaudit':
+      if(auditWalletArray){
+
+        m.payload.push({wallets: auditWalletArray});
+        m.payload.push({wdfees: auditWdFeeArray});
+        //jsonBreadCrumb('security', 'audit', [m.payload]);
+        //log(auditArray);
+      }
+      break;
+    }
+    var newpayload = [];
+    var incomingpayload = [m.payload];
+    if(incomingpayload.length > 1){
+      incomingpayload.forEach((item, i) => {
+        auditArray.push(item);
+      });
+      //auditArray.push(auditWalletArray);
+    } else {
+      auditArray = m.payload;
+      //auditArray.push(auditWalletArray);
+    }
+
+    if(auditArray != undefined){
+      try{
+        jsonBreadCrumb('security', 'audit', [auditArray]);
+      } catch(e) {
+        //log(e)
+      }
+      var masskeys = Object.keys(socketList);
+      for (var i = 0; i < masskeys.length; i++){
+        if (socketList[masskeys[i]]) {
+          socketList[masskeys[i]].emit(`${name}`, auditArray);
+        }
+      }
+    }
+    break;
+  }
+
+  if (m.type === 'infoloandata'){
+    //log(`MYLOANS FIRED`)
+    //log(m);
+    if (userSockets[m.username]) {
+      userSockets[m.username].emit('infoloandata', {loandata: m.loandata, token: m.token});
+    }
+  } else if (m.type === 'depositconfirmed'){
+    if (userSockets[m.username]) {
+      jsonBreadCrumb('wallet', 'deposit', {txid: m.txid});
+      userSockets[m.username].emit('depositcredit', {balance: m.balance, amount: m.amount, coin: m.coin});
+    }
+  } else if (m.type === 'statereply'){
+    if (userSockets[m.username]) {
+      userSockets[m.username].emit('statereply', {loanstates: m.loanstates, token: m.token});
+    }
+  }
+});//END loanThread.on('message',
+
+tickerThread.on('message', function(m) {
+  try{
+    m = JSON.parse(m);
+    if(debug === true){
+      log(`SOCKET: tickerThread.on('message' message:`);
+      log(m);
+    }
+  } catch(e){
+    m = JSON.parse(JSON.stringify(m));
+  }
+  switch(m.type){
+    case 'emit':
+    var name = m.name.toString();
+    var socketidparse = m.socketid;
+    var socketCorrect = socketList[m.socketid[0].id];
+    var socketid = m.socketid[0].id
+    var newpayload = [];
+    var incomingpayload = m.payload;
+    if(incomingpayload.length > 1){
+      incomingpayload.forEach((item, i) => {
+        newpayload.push(item);
+      });
+    } else {
+      newpayload = m.payload;
+    }
+    switch(m.name){
+      case 'priceshift':
+      jsonBreadCrumb('contracts', 'priceshift', m.payload);
+      break;//END case 'newloanmade'
+      case 'price':
+      jsonBreadCrumb('price', 'update', m.payload);
+      break;
+    }
+    if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload);
+    break;
+
+    case 'massemit':
+    var name = m.name.toString();
+    var newpayload = [];
+    var incomingpayload = [m.payload];
+    if(incomingpayload.length > 1){
+      incomingpayload.forEach((item, i) => {
+        newpayload.push(item);
+      });
+    } else {
+      newpayload = m.payload;
+    }
+
+    switch(m.name){
+      case 'cgmarketfetch':
+      log(`cgmarketfetch m.payload:`);
+      log(m.payload);
+      return;
+      break;
+    }
+
+    var masskeys = Object.keys(socketList);
+    for (var i = 0; i< masskeys.length;i++){
+      if (socketList[masskeys[i]]) {
+        socketList[masskeys[i]].emit(`${name}`, newpayload);
+      }
+    }
+    break;
+  }
+
+  if (m.type === 'infoloandata'){
+    //log(`MYLOANS FIRED`)
+    //log(m);
+    if (userSockets[m.username]) {
+      userSockets[m.username].emit('infoloandata', {loandata: m.loandata, token: m.token});
+    }
+  } else if (m.type === 'priceerror'){
+    if (userSockets[m.username]) {
+      userSockets[m.username].emit('depositcredit', {balance: m.balance, amount: m.amount, coin: m.coin});
+    }
+  }
+});//END tickerThread.on('message',
+
+futuresThread.on('message', function(m) {
+  try{
+    m = JSON.parse(m);
+    if(debug === true){
+      log(`SOCKET: futuresThread.on('message' message:`);
+      log(m);
+    }
+  } catch(e){
+    m = JSON.parse(JSON.stringify(m));
+  }
+
+  switch(m.type){
+    case 'emit':
+    var name = m.name.toString();
+    var socketidparse = m.socketid;
+    var socketCorrect = socketList[m.socketid[0].id];
+    var socketid = m.socketid[0].id
+    var newpayload = [];
+    var incomingpayload = m.payload;
+    if(incomingpayload.length > 1){
+      incomingpayload.activeOrders.forEach((item, i) => {
+        newpayload.push(item);
+      });
+    } else {
+      newpayload = m.payload;
+    }
+    switch(m.name){
+      case 'newcfdmade':
+      jsonBreadCrumb('cfd', 'open', m.payload);
+      break;//END case 'newloanmade'
+      case 'closecfd':
+      jsonBreadCrumb('cfd', 'close', m.payload);
+      break;
+      case 'rektcfd':
+      jsonBreadCrumb('cfd', 'rekt', m.payload);
+      break;
+      case 'updatecfd':
+      jsonBreadCrumb('cfd', 'update', m.payload);
+      break;
+    }
+    if (socketList[m.socketid[0].id]) socketCorrect.emit(`${name}`, newpayload);
+    break;
+
+    case 'massemit':
+    var name = m.name.toString();
+    var newpayload = [];
+    var incomingpayload = [m.payload];
+    var masskeys = Object.keys(socketList);
+    var tradernames = [];
+      incomingpayload.forEach((item, i) => {
+        if(!tradernames.includes(item.username)){
+          tradernames.push(item.username);
+        }
+        if(masskeys.includes(item.username)){
+          tradernames[item.username].push()
+        }
+        newpayload.push(item);
+      });
+    if(name == 'validcheck'){
+      for (var i = 0; i< tradernames.length;i++){
+        if (userSockets[tradernames[i]]) {
+          userSockets[tradernames[i]].emit(`${name}`, newpayload);
+        }
+      }
+    } else {
+      for (var i = 0; i< masskeys.length;i++){
+        if (socketList[masskeys[i]]) {
+          socketList[masskeys[i]].emit(`${name}`, newpayload);
+        }
+      }
+    }
+    break;
+
+    case 'cfdupdate':
+    log(`CFDUPDATE ON SOCKET.JS`);
+    log(m.payload);
+        log(`m.payload.activeOrders`)
+    log(m.payload.activeOrders)
+    var name = m.name.toString();
+    var newpayload = [];
+    var incomingpayload = m.payload.activeOrders;
+    var masskeys = Object.keys(socketList);
+    var tradernames = m.payload.activecfdusers;
+    log(tradernames)
+    var sockeytargets = [];
+      incomingpayload.forEach((item, i) => {
+
+        //if(item == 'activeorders'){
+          if(tradernames.includes(item.username)){
+            delete item.username;
+            delete item.orderId;
+            newpayload.push(item);
+          }
+        //}
+
+      });
+    if(name == 'validcheck'){
+      for (var i = 0; i< tradernames.length;i++){
+        log(tradernames[i])
+        if (userSockets[tradernames[i]]) {
+        //if (socketList[tradernames[i]]) {
+        log(`${tradernames[i]} is online. sending update`)
+          userSockets[tradernames[i]].emit(`${name}`, newpayload);
+        }
+        //}
+      }
+    } else {
+      for (var i = 0; i< masskeys.length;i++){
+        if (socketList[masskeys[i]]) {
+          socketList[masskeys[i]].emit(`${name}`, newpayload);
+        }
+      }
+    }
+    break;
+
+  }
+});//END futuresThread.on('message',
+//==================================================
+//--------------------------------------------------
+//     Password Functions & 2FA & Token
+//--------------------------------------------------
+function get2fa(user, cb){
+  fs.readFile( __dirname + "/db/logins/" + user, function(err, data){ //read user data
+    if (err) return cb(err, null);
+    data = JSON.parse(data);
+    if (typeof data['2fa'] === 'undefined') return cb(null, false);
+    return cb(null, true);
+  });
+};//END get2fa
+//save 2FA to users account
+function save2fa(secret, user, cb){
+  fs.readFile( __dirname + "/db/logins/" + user, function(err, data){ //read user data
+    if (err) return cb(err, null);
+    data = JSON.parse(data);
+    data['2fa'] = secret;
+    fs.writeFile(__dirname + "/db/logins/" + user, JSON.stringify(data), function(err,d){
+      if (err) return cb(err, null);
+      return cb(null, true);
+    });
+  });
+};//END save2fa
+//test if a 2FA attempt is valid
+function is2FACorrect(code, secret){
+  var verified = speakeasy.totp.verify({
+    secret: secret,
+    encoding: 'base32',
+    token: code
+  });
+  return verified;
+};//END is2FACorrect
+//test a token against a users current token
+function testToken(socket, token){
+  if ( userTokens[socket.request.session['user']] !== token) return false;
+  var token = crypto.randomBytes(64).toString('base64');
+  userTokens[socket.request.session['user']] = token;
+  return true;
+};//END testToken
+//create a random base64 token
+function changeToken(user){
+  if(debug === false) log(`changeToken(${user})`);
+  var token = crypto.randomBytes(64).toString('base64');
+  if(debug === false) log(`old userTokens[user] = ${userTokens[user]}`);
+  if (userTokens[user]) userTokens[user] = token;
+  if(debug === false) log(`new userTokens[user] = ${userTokens[user]}`);
+  return token;
+};//END changeToken
+//create salt and hash password
+function hashPassword(password) {
+  var salt = crypto.randomBytes(64).toString('base64');
+  return sha512(password, salt);
+};//END hashPassword
+//sha512 of password and salt
+var sha512 = function(password, salt){
+  var hash = crypto.createHmac('sha512', salt); /** Hashing algorithm sha512 */
+  hash.update(password);
+  var value = hash.digest('hex');
+  return {
+    salt:salt,
+    passwordHash:value
+  };
+};//END sha512
+//Check password
+function isPasswordCorrect(savedHash, savedSalt, passwordAttempt) {
+  var passwordHash = sha512(passwordAttempt, savedSalt);
+  if (passwordHash.passwordHash === savedHash){
+    return true;
+  } else {
+    return false;
+  }
+};//END isPasswordCorrect
+
+//==================================================
+//--------------------------------------------------
+//     Utility & Function
+//--------------------------------------------------
+function returnTime(){
+  var time = new Date();
+  time.setHours(time.getHours() + 18);
+  time = (time).toUTCString();
+  time = time.slice(17, time.length - 4);
+  return time;
+};//END returnTime
+
+function simpleStringify(object){
+    var simpleObject = {};
+    for (var prop in object ){
+        if (!object.hasOwnProperty(prop)){
+            continue;
+        }
+        if (typeof(object[prop]) == 'object'){
+            continue;
+        }
+        if (typeof(object[prop]) == 'function'){
+            continue;
+        }
+        simpleObject[prop] = object[prop];
+    }
+    return [simpleObject]; // returns cleaned up JSON
+};//END simpleStringify
+
+function alphanumeric(inputtxt) {
+  var letterNumber = /^[0-9a-zA-Z]+$/;
+  if(inputtxt.match(letterNumber)){
+    return true;
+  } else {
+    return false;
+  }
+};//END alphanumeric
+
+function splitOffVests(string){
+  if(string){
+    if(debug === true) log(`SOCKET: async function splitOffVests(${string})`);
+    return parseFloat(string.split(' ')[0]);
+  } else {
+    return false;
+  }
+};//END splitOffVests
+
+function largest(current, newL){
+  if (current < newL){
+    return newL;
+  }
+  return current;
+};//END largest
+
+function timeout(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};//END timeout
+
+function censor(censor) {
+  var i = 0;
+  return function(key, value) {
+    if(i !== 0 && typeof(censor) === 'object' && typeof(value) == 'object' && censor == value)
+      return '[Circular]';
+    if(i >= 29) // seems to be a harded maximum of 30 serialized objects?
+      return '[Unknown]';
+    ++i; // so we know we aren't using the original object anymore
+    return value;
+  }
+};//END censor
+
+process.on('SIGINT', function () {
+  if(!blockNum) {
+    log(`Shutting down in 1 seconds, start again with block ${blockNum}, Halting the Application!`);
+  } else {
+    log(`Shutting down in 1 seconds, Halting the Application!`);
+  }
+  shutdown = true;
+  setTimeout(bail, 1000);
+});//END SIGINT

@@ -1,8 +1,9 @@
-<html>
+<!--<!DOCTYPE html>-->
+<html lang="en">
 <head>
 <title>Hive.Loans</title>
 <!-- Responsive Layout -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css">
 <link rel="stylesheet" href="/css/mainstatic.css">
 <link rel="stylesheet" href="/css/contextMenu.css">
@@ -171,7 +172,7 @@
       </span><!--END alertWrapper-->
   </span>
 
-  <span id="alertpricepanel" class="alertpricepanel" onload="$('#alertPriceClose').focus();" style="position: fixed; bottom: 5%; left:0;text-align: center; height: auto;" onmouseover="headLight('#alertPriceHead');" onmouseout="headDim('#alertPriceHead');">
+  <span id="alertpricepanel" class="alertpricepanel" onload="$('#alertPriceClose').focus(); setTimeout(function(){$('#alertpricepanel').fadeOut();},1000);" style="position: fixed; bottom: 5%; left:0;text-align: center; height: auto;" onmouseover="headLight('#alertPriceHead');" onmouseout="headDim('#alertPriceHead');">
     <div id="alertPriceHead">
       <span id="alertPriceMove" class="smolbutton" title="Click and Drag to Move Window" onmousedown="$('#alertpricepanel').draggable();">
         <i class="fas fa-arrows-alt"></i>
@@ -208,6 +209,7 @@
       <i class="fas fa-arrows-alt"></i>
     </span>
     <span id="chatName" style="display: inline-block">Loading</span>
+    <span id="trollusers" title="Users in Trollbox"><i class="fas fa-users"></i>&nbsp;<span id="usersonline">0</span></soan>
     <span id="chatClose" class="smolbutton" title="Click to Close this Panel" onclick="$('#chatpanel').fadeOut(); $('#chaticon').show(); $('#chaticon').removeClass('hidden');" onmouseover="$(this).css({'color':'red'})" onmouseout="$(this).css({'color':'white'})">
     <i class="fas fa-times"></i>
     </span>
@@ -354,16 +356,34 @@
       <span class="footersplitter"></span>
   </div>
   <span id="pingholder"><span id="pingheart" onclick="stopHeart();"><i class="fas fa-fw fa-heartbeat"></i></span> <span id="ping">0</span><code>ms</code></span>
-   <span id="discord" style="color:#f0f0f8 !important;text-decoration: none !important;">
-     <a href="https://discord.gg/mtwvCpS" target="_blank" rel="noopener noreferrer" style="color:#f0f0f8 !important;text-decoration: none !important;" title="Visit Our Discord!">
-       <i class="fab fa-fw fa-2x fa-discord sexyblackoutline" style="padding-left:0.5em;padding-right:0.5em;color:#f0f0f8; float:right;margin-right: 2vw; font-size: 2em !important; line-height: 1.2em !important; "></i>
-     </a>
+  <span class="cardbox">
+   <span id="discord" class="card" style="color:#f0f0f8 !important;text-decoration: none !important;">
+     <span class="card-front">
+       <a href="https://discord.gg/mtwvCpS" target="_blank" rel="noopener noreferrer" style="color:#f0f0f8 !important;text-decoration: none !important;" title="Visit Our Discord!">
+         <i class="fab fa-fw fa-2x fa-discord sexyblackoutline" style="padding-left:0.5em;padding-right:0.5em;color:#f0f0f8; float:right;margin-right: 2vw; font-size: 2em !important; line-height: 1.2em !important; "></i>
+       </a>
+     </span>
+     <span class="card-back">
+       <a href="https://discord.gg/mtwvCpS" target="_blank" rel="noopener noreferrer" style="color:#f0f0f8 !important;text-decoration: none !important;" title="Visit Our Discord!">
+         Discord
+       </a>
+     </span>
    </span>
-   <span id="github" style='color: #f0f0f8;float: right;margin-top: -0.22em;margin-right: 1.3em;vertical-align: middle;'>
-     <a href="https://github.com/KLYE-Dev/hive.loans" target="_blank" rel="noopener noreferrer" style="z-index: 999999; color:#f0f0f8 !important;text-decoration: none !important;" title="Visit the Github!">
-       <i class="fab fa-fw fa-2x fa-github-square sexyblackoutline" style="padding-left:0.5em;padding-right:0.5em;color:#f0f0f8; float:right; font-size: 2em !important; line-height: 1.2em !important; "></i>
-     </a>
+ </span>
+ <span class="cardbox">
+   <span id="github" class="card" style='color: #f0f0f8;float: right;margin-top: -0.22em;margin-right: 1.3em;vertical-align: middle;'>
+     <span class="card-front">
+       <a href="https://github.com/KLYE-Dev/hive.loans" target="_blank" rel="noopener noreferrer" style="z-index: 999999; color:#f0f0f8 !important;text-decoration: none !important;" title="Visit the Github!">
+         <i class="fab fa-fw fa-2x fa-github-square sexyblackoutline" style="padding-left:0.5em;padding-right:0.5em;color:#f0f0f8; float:right; font-size: 2em !important; line-height: 1.2em !important; "></i>
+       </a>
+     </span>
+     <span class="card-back">
+       <a href="https://github.com/KLYE-Dev/hive.loans" target="_blank" rel="noopener noreferrer" style="z-index: 999999; color:#f0f0f8 !important;text-decoration: none !important;" title="Visit the Github!">
+         GitHub
+       </a>
+     </span>
    </span>
+ </span>
  </footer>
 <span id="socketid"></span><span id="plugintype"></span><span id="useraddress"></span><span id="newamount"></span><span id="newdays"></span><span id="newfee"></span><span id="userrank"></span>
 </body>
